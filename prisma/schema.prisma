@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  password      String
+  projects      Project[]
+  googleAccount GoogleAccount?
+  userToken     UserToken?
+  createdAt     DateTime       @default(now())
+}
+
+model Project {
+  id             Int         @id @default(autoincrement())
+  name           String
+  domain         String
+  googleProperty String?     // Property ID van Google Analytics
+  userId         Int
+  user           User        @relation(fields: [userId], references: [id])
+  backlinks      Backlink[]
+  keywords       Keyword[]
+  contentPages   Content[]
+  technicalSEO   Technical[]
+  createdAt      DateTime    @default(now())
+}
+
+model Backlink {
+  id          Int      @id @default(autoincrement())
+  url         String
+  anchorText  String
+  domainAuth  Float    // Domain Authority
+  status      String   // active, lost, etc.
+  firstSeen   DateTime @default(now())
+  lastChecked DateTime @default(now())
+  projectId   Int
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+model Keyword {
+  id          Int      @id @default(autoincrement())
+  term        String
+  position    Int
+  volume      Int      // Search volume
+  difficulty  Float    // SEO difficulty score
+  lastUpdated DateTime @default(now())
+  projectId   Int
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+model Content {
+  id          Int      @id @default(autoincrement())
+  url         String
+  title       String
+  wordCount   Int
+  score       Float    // Content quality score
+  lastUpdated DateTime @default(now())
+  projectId   Int
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+model Technical {
+  id            Int      @id @default(autoincrement())
+  category      String   // performance, accessibility, seo, best-practices
+  score         Float
+  issueCount    Int
+  lastChecked   DateTime @default(now())
+  projectId     Int
+  project       Project  @relation(fields: [projectId], references: [id])
+}
+
+model UserToken {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id])
+  accessToken  String
+  refreshToken String
+  createdAt    DateTime @default(now())
+}
+
+model GoogleAccount {
+  id           Int      @id @default(autoincrement())
+  googleId     String   @unique
+  email        String
+  accessToken  String
+  refreshToken String
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+}
