@@ -5,19 +5,24 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const id = await Promise.resolve(context.params.id)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Parse params.id here since it's from the URL
+    const projectId = parseInt(params.id)
+    if (isNaN(projectId)) {
+      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
+    }
+
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(id),
+        id: projectId,
         userId: parseInt(session.user.id)
       }
     })

@@ -24,7 +24,7 @@ export const authOptions: AuthOptions = {
           }
         });
 
-        if (!user || !user?.password) {
+        if (!user?.password) {
           throw new Error('Invalid credentials');
         }
 
@@ -44,8 +44,8 @@ export const authOptions: AuthOptions = {
       }
     }),
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
       authorization: {
         params: {
           prompt: "consent",
@@ -60,42 +60,44 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user, account }) {
       if (account && user) {
         if (account.provider === "google") {
-          // Store Google tokens
           await prisma.googleAccount.upsert({
             where: {
               googleId: account.providerAccountId,
             },
             update: {
-              accessToken: account.access_token!,
-              refreshToken: account.refresh_token!,
+              accessToken: account.access_token ?? '',
+              refreshToken: account.refresh_token ?? '',
             },
             create: {
               googleId: account.providerAccountId,
-              email: user.email!,
-              accessToken: account.access_token!,
-              refreshToken: account.refresh_token!,
+              email: user.email ?? '',
+              accessToken: account.access_token ?? '',
+              refreshToken: account.refresh_token ?? '',
               userId: parseInt(user.id),
             },
           });
         }
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub;
+      if (token?.id && session.user) {
+        session.user.id = token.id;
       }
       return session;
     }
   },
   pages: {
     signIn: '/auth/signin',
+    error: '/auth/error',
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
+}
 
 const handler = NextAuth(authOptions);
 

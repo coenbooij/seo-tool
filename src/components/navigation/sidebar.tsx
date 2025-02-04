@@ -1,21 +1,44 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
+import { useState } from 'react'
 
-const navigation = [
+const globalNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { name: 'Projects', href: '/dashboard/projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const params = useParams()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  const projectId = params?.id as string
+  const navigation = projectId
+    ? globalNavigation.map(item => ({
+        ...item,
+        href: item.href.replace('[id]', projectId),
+      }))
+    : globalNavigation
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true)
+      await signOut({ callbackUrl: '/auth/signin' })
+    } catch (error) {
+      console.error('Error signing out:', error)
+      setIsSigningOut(false)
+    }
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-800 w-64">
       <div className="flex items-center justify-center h-16 px-4">
-        <h1 className="text-white text-xl font-bold">SEO Tool</h1>
+        <Link href="/dashboard">
+          <h1 className="text-white text-xl font-bold cursor-pointer">SEO Tool</h1>
+        </Link>
       </div>
       <nav className="mt-5 flex-1 px-2 space-y-1">
         {navigation.map((item) => {
@@ -54,7 +77,8 @@ export default function Sidebar() {
       </nav>
       <div className="flex-shrink-0 flex border-t border-gray-700 p-4">
         <button
-          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+          onClick={handleSignOut}
+          disabled={isSigningOut}
           className="flex-shrink-0 w-full group block"
         >
           <div className="flex items-center">
@@ -75,7 +99,7 @@ export default function Sidebar() {
               </svg>
             </div>
             <div className="text-sm font-medium text-gray-300 group-hover:text-white">
-              Sign Out
+              {isSigningOut ? 'Signing out...' : 'Sign Out'}
             </div>
           </div>
         </button>

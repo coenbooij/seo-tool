@@ -41,11 +41,46 @@ export async function POST(request: Request) {
     const json = await request.json()
     const { name, domain, googleProperty } = json
 
+    // Input validation
+    if (!name?.trim()) {
+      return NextResponse.json(
+        { error: 'Project name is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!domain?.trim()) {
+      return NextResponse.json(
+        { error: 'Domain is required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate domain format
+    const domainRegex = /^([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}$/
+    if (!domainRegex.test(domain.trim())) {
+      return NextResponse.json(
+        { error: 'Invalid domain format' },
+        { status: 400 }
+      )
+    }
+
+    // Validate Google Analytics property ID format (if provided)
+    if (googleProperty) {
+      const gaRegex = /^(UA|G|GTM)-[A-Z0-9\-]+$/i
+      if (!gaRegex.test(googleProperty.trim())) {
+        return NextResponse.json(
+          { error: 'Invalid Google Analytics property ID format' },
+          { status: 400 }
+        )
+      }
+    }
+
     const project = await prisma.project.create({
       data: {
-        name,
-        domain,
-        googleProperty,
+        name: name.trim(),
+        domain: domain.trim().toLowerCase(),
+        googleProperty: googleProperty?.trim(),
         userId: parseInt(session.user.id)
       }
     })

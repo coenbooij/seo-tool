@@ -5,20 +5,24 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const id = await Promise.resolve(context.params.id)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify project belongs to user
+    // Parse params.id here since it's from the URL
+    const projectId = parseInt(params.id)
+    if (isNaN(projectId)) {
+      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
+    }
+
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(id),
+        id: projectId,
         userId: parseInt(session.user.id)
       }
     })
@@ -28,15 +32,14 @@ export async function GET(
     }
 
     // For now, return placeholder technical data
-    // In a real application, this would fetch data from Lighthouse or similar APIs
     const technical = {
       performance: {
         score: 85,
         metrics: {
-          fcp: 1.8, // First Contentful Paint (seconds)
-          lcp: 2.3, // Largest Contentful Paint (seconds)
-          cls: 0.08, // Cumulative Layout Shift
-          tti: 3.2, // Time to Interactive (seconds)
+          fcp: 1.8,
+          lcp: 2.3,
+          cls: 0.08,
+          tti: 3.2,
         },
         issues: [
           {

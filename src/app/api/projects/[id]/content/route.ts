@@ -5,20 +5,24 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const id = await Promise.resolve(context.params.id)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify project belongs to user
+    // Parse params.id here since it's from the URL
+    const projectId = parseInt(params.id)
+    if (isNaN(projectId)) {
+      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
+    }
+
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(id),
+        id: projectId,
         userId: parseInt(session.user.id)
       }
     })
@@ -28,10 +32,8 @@ export async function GET(
     }
 
     // For now, return placeholder content data
-    // In a real application, this would fetch data from content analysis APIs
-    const pages = [
+    const content = [
       {
-        id: 1,
         url: 'https://example.com/blog/seo-guide-2024',
         title: 'Complete SEO Guide for 2024',
         wordCount: 2500,
@@ -40,7 +42,6 @@ export async function GET(
         issues: []
       },
       {
-        id: 2,
         url: 'https://example.com/services',
         title: 'Our SEO Services',
         wordCount: 1200,
@@ -54,7 +55,6 @@ export async function GET(
         ]
       },
       {
-        id: 3,
         url: 'https://example.com/case-studies',
         title: 'SEO Success Stories',
         wordCount: 3200,
@@ -68,7 +68,6 @@ export async function GET(
         ]
       },
       {
-        id: 4,
         url: 'https://example.com/about',
         title: 'About Us',
         wordCount: 800,
@@ -84,33 +83,10 @@ export async function GET(
             message: 'Add team member information'
           }
         ]
-      },
-      {
-        id: 5,
-        url: 'https://example.com/blog/technical-seo',
-        title: 'Technical SEO Guide',
-        wordCount: 4200,
-        score: 95,
-        lastUpdated: '2024-01-29T10:00:00Z',
-        issues: []
-      },
-      {
-        id: 6,
-        url: 'https://example.com/pricing',
-        title: 'SEO Packages & Pricing',
-        wordCount: 1500,
-        score: 82,
-        lastUpdated: '2024-01-27T10:00:00Z',
-        issues: [
-          {
-            type: 'warning',
-            message: 'Add comparison table for packages'
-          }
-        ]
       }
     ]
 
-    return NextResponse.json(pages)
+    return NextResponse.json(content)
   } catch (error) {
     console.error('Error fetching content:', error)
     return NextResponse.json(
