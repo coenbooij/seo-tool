@@ -1,48 +1,10 @@
 import NextAuth from "next-auth";
 import { AuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
-import { compare } from "bcrypt";
 
 export const authOptions: AuthOptions = {
   providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          }
-        });
-
-        if (!user?.password) {
-          throw new Error('Invalid credentials');
-        }
-
-        const isCorrectPassword = await compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isCorrectPassword) {
-          throw new Error('Invalid credentials');
-        }
-
-        return {
-          id: user.id.toString(),
-          email: user.email,
-        };
-      }
-    }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
@@ -60,6 +22,18 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user, account }) {
       if (account && user) {
         if (account.provider === "google") {
+          // First, find or create the user
+          const dbUser = await prisma.user.upsert({
+            where: {
+              email: user.email ?? '',
+            },
+            create: {
+              email: user.email ?? '',
+            },
+            update: {},
+          });
+
+          // Then, link the Google account
           await prisma.googleAccount.upsert({
             where: {
               googleId: account.providerAccountId,
@@ -73,11 +47,12 @@ export const authOptions: AuthOptions = {
               email: user.email ?? '',
               accessToken: account.access_token ?? '',
               refreshToken: account.refresh_token ?? '',
-              userId: parseInt(user.id),
+              userId: dbUser.id,
             },
           });
+
+          token.id = dbUser.id.toString(); // Convert to string for NextAuth
         }
-        token.id = user.id;
       }
       return token;
     },

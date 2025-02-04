@@ -13,10 +13,8 @@ datasource db {
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
-  password      String
   projects      Project[]
   googleAccount GoogleAccount?
-  userToken     UserToken?
   createdAt     DateTime       @default(now())
 }
 
@@ -76,15 +74,6 @@ model Technical {
   lastChecked   DateTime @default(now())
   projectId     Int
   project       Project  @relation(fields: [projectId], references: [id])
-}
-
-model UserToken {
-  id           Int      @id @default(autoincrement())
-  userId       Int      @unique
-  user         User     @relation(fields: [userId], references: [id])
-  accessToken  String
-  refreshToken String
-  createdAt    DateTime @default(now())
 }
 
 model GoogleAccount {
