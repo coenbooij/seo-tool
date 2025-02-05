@@ -12,14 +12,8 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 interface Issue {
   type: 'error' | 'warning'
-  category: string
   message: string
-  description?: string
   impact: 'high' | 'medium' | 'low'
-}
-
-interface PerformanceIssue extends Issue {
-  savings?: number | null
 }
 
 interface TechnicalData {
@@ -43,7 +37,7 @@ interface TechnicalData {
       userAgent: string
       timestamp: string
     }
-    issues: PerformanceIssue[]
+    issues: Issue[]
   }
   seo: {
     score: number
@@ -57,10 +51,6 @@ interface TechnicalData {
     score: number
     issues: Issue[]
   }
-}
-
-function isPerformanceIssue(issue: Issue | PerformanceIssue): issue is PerformanceIssue {
-  return 'savings' in issue
 }
 
 export default function TechnicalPage() {
@@ -91,7 +81,12 @@ export default function TechnicalPage() {
       {/* Header with PageSpeed Logo and Reload Button */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          
+          <Image 
+            src="https://www.gstatic.com/pagespeed/insights/ui/logo_48pt_56dp.svg"
+            alt="PageSpeed Insights"
+            width={28}
+            height={28}
+          />
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">PageSpeed Insights</h1>
             <p className="text-sm text-gray-500">
@@ -121,8 +116,8 @@ export default function TechnicalPage() {
           format="numeric"
         />
         <TrendCard
-          title="Accessibility"
-          value={technical.accessibility.score}
+          title="SEO"
+          value={technical.seo.score}
           change={0}
           changeTimeframe="last check"
           trend="up"
@@ -137,8 +132,8 @@ export default function TechnicalPage() {
           format="numeric"
         />
         <TrendCard
-          title="SEO"
-          value={technical.seo.score}
+          title="Accessibility"
+          value={technical.accessibility.score}
           change={0}
           changeTimeframe="last check"
           trend="up"
@@ -295,16 +290,6 @@ export default function TechnicalPage() {
                         <p className="text-sm font-medium text-gray-900">
                           {issue.message}
                         </p>
-                        {issue.description && (
-                          <p className="mt-1 text-sm text-gray-500">
-                            {issue.description}
-                          </p>
-                        )}
-                        {isPerformanceIssue(issue) && issue.savings && (
-                          <p className="mt-1 text-sm text-gray-500">
-                            Potential savings: {Math.round(issue.savings / 1024)} KiB
-                          </p>
-                        )}
                       </div>
                     </div>
                   ))}

@@ -9,12 +9,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Properly handle params
-    if (!params?.id) {
+    const id = await Promise.resolve(params.id)
+    if (!id) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
     }
 
-    const projectId = parseInt(params.id)
+    const projectId = parseInt(id)
     if (isNaN(projectId)) {
       return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
     }
@@ -41,13 +41,13 @@ export async function GET(
       : `https://${project.domain}`
 
     try {
-      // Get real performance data from PageSpeed Insights
+      // Get performance data from PageSpeed Insights
       const technical = await getPageSpeedData(url)
       return NextResponse.json(technical)
     } catch (error) {
-      console.error('Error fetching PageSpeed data:', error)
+      console.error('Error analyzing site:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch PageSpeed data. Please verify the domain is accessible.' },
+        { error: 'Failed to analyze the site. Please verify the domain is accessible.' },
         { status: 500 }
       )
     }

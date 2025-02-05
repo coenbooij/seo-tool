@@ -1,182 +1,323 @@
 'use client'
 
+import React, { useState, Fragment } from 'react'
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
-import { useState } from 'react'
-import TrendCard from '@/components/metrics/trend-card'
+import { Button } from "@/components/ui/button"
+import { ReloadIcon } from "@radix-ui/react-icons"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+} from "@tanstack/react-table"
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+
+interface KeywordData {
+  keyword: string
+  usage: {
+    count: number
+    density: number
+    positions: {
+      title: boolean
+      description: boolean
+      headings: boolean
+      content: boolean
+    }
+  }
+  competition: {
+    difficulty: number
+    competitorCount: number
+  }
+  suggestions: Array<{
+    keyword: string
+    source: 'google' | 'content' | 'related'
+  }>
+}
+
+interface ApiResponse {
+  keywords: KeywordData[]
+  analyzed: string
+}
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-interface Keyword {
-  id: number
-  term: string
-  position: number
-  volume: number
-  difficulty: number
-  lastUpdated: string
-}
+const columns: ColumnDef<KeywordData>[] = [
+  {
+    accessorKey: 'keyword',
+    header: 'Keyword',
+  },
+  {
+    accessorKey: 'usage.count',
+    header: 'Count',
+  },
+  {
+    accessorKey: 'usage.density',
+    header: 'Density',
+    cell: ({ row }) => {
+      const density = row.original.usage.density
+      return `${density.toFixed(2)}%`
+    },
+  },
+  {
+    accessorKey: 'competition.difficulty',
+    header: 'Difficulty',
+    cell: ({ row }) => {
+      const difficulty = row.original.competition.difficulty
+      return (
+        <div className={`font-medium ${
+          difficulty < 30 ? 'text-green-600' :
+          difficulty < 60 ? 'text-yellow-600' :
+          'text-red-600'
+        }`}>
+          {difficulty}
+        </div>
+      )
+    },
+  },
+  {
+    id: 'placement',
+    header: 'Placement',
+    cell: ({ row }) => {
+      const positions = row.original.usage.positions
+      const icons = []
+      if (positions.title) icons.push('🏷️')
+      if (positions.description) icons.push('📝')
+      if (positions.headings) icons.push('📌')
+      if (positions.content) icons.push('📄')
+      return icons.join(' ')
+    },
+  }
+]
 
 export default function KeywordsPage() {
   const params = useParams()
-  const [searchTerm, setSearchTerm] = useState('')
-  const { data: keywords } = useSWR<Keyword[]>(
+  const [isReloading, setIsReloading] = useState(false)
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+  
+  const { data, isLoading, mutate } = useSWR<ApiResponse>(
     `/api/projects/${params.id}/keywords`,
     fetcher
   )
 
-  if (!keywords) {
-    return <div>Loading...</div>
+  const handleReload = async () => {
+    setIsReloading(true)
+    await mutate()
+    setIsReloading(false)
   }
 
-  const filteredKeywords = keywords.filter((keyword) =>
-    keyword.term.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleRowClick = (keyword: string) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [keyword]: !prev[keyword]
+    }))
+  }
 
-  // Calculate metrics
-  const top10Keywords = keywords.filter((k) => k.position <= 10).length
-  const avgPosition =
-    Math.round(
-      (keywords.reduce((acc, k) => acc + k.position, 0) / keywords.length) * 10
-    ) / 10
-  const totalVolume = keywords.reduce((acc, k) => acc + k.volume, 0)
+  const table = useReactTable({
+    data: data?.keywords || [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      sorting,
+      columnFilters,
+    },
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <ReloadIcon className="h-6 w-6 animate-spin text-gray-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <TrendCard
-          title="Top 10 Rankings"
-          value={top10Keywords}
-          change={2.5}
-          changeTimeframe="last month"
-          trend="up"
-        />
-        <TrendCard
-          title="Average Position"
-          value={avgPosition}
-          change={-0.8}
-          changeTimeframe="last month"
-          trend="down"
-        />
-        <TrendCard
-          title="Total Search Volume"
-          value={totalVolume}
-          change={5.3}
-          changeTimeframe="last month"
-          trend="up"
-        />
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Keyword Analysis</h1>
+          {data && (
+            <p className="text-sm text-gray-500">
+              Last analyzed: {new Date(data.analyzed).toLocaleString()}
+            </p>
+          )}
+        </div>
+        <Button 
+          onClick={handleReload} 
+          size="sm"
+          variant="ghost"
+          disabled={isReloading}
+        >
+          <ReloadIcon className={`h-4 w-4 mr-2 ${isReloading ? 'animate-spin' : ''}`} />
+          Reload Data
+        </Button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h1 className="text-xl font-semibold text-gray-900">Keywords</h1>
-            <p className="mt-2 text-sm text-gray-700">
-              Track your keyword rankings and performance
-            </p>
-          </div>
-          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-            <div className="relative rounded-md shadow-sm">
-              <input
-                type="text"
-                name="search"
-                id="search"
-                className="block w-full rounded-md border-gray-300 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                placeholder="Search keywords"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Filter */}
+      <div className="flex items-center py-4">
+        <input
+          placeholder="Filter keywords..."
+          value={(table.getColumn('keyword')?.getFilterValue() as string) ?? ''}
+          onChange={(event) =>
+            table.getColumn('keyword')?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm border border-gray-300 rounded-md px-3 py-2"
+        />
       </div>
 
       {/* Keywords Table */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Keyword
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Position
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Volume
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Difficulty
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Updated
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredKeywords.map((keyword) => (
-                <tr key={keyword.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {keyword.term}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        keyword.position <= 3
-                          ? 'bg-green-100 text-green-800'
-                          : keyword.position <= 10
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {keyword.position}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {keyword.volume.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                        <div
-                          className={`h-2 rounded-full ${
-                            keyword.difficulty < 30
-                              ? 'bg-green-500'
-                              : keyword.difficulty < 60
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${keyword.difficulty}%` }}
-                        ></div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => (
+              <Fragment key={row.original.keyword}>
+                <TableRow 
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(row.original.keyword)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {expandedRows[row.original.keyword] && (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="bg-gray-50 p-4">
+                      <div className="space-y-4">
+                        {/* Usage Details */}
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Usage Details</h3>
+                          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Placement</p>
+                              <div className="mt-1 space-y-1">
+                                {Object.entries(row.original.usage.positions).map(([key, value]) => (
+                                  <p key={key} className="text-sm text-gray-900">
+                                    {key.charAt(0).toUpperCase() + key.slice(1)}: {' '}
+                                    <span className={value ? 'text-green-600' : 'text-red-600'}>
+                                      {value ? '✓' : '✗'}
+                                    </span>
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Usage Stats</p>
+                              <div className="mt-1 space-y-1">
+                                <p className="text-sm text-gray-900">
+                                  Count: {row.original.usage.count}
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  Density: {row.original.usage.density.toFixed(2)}%
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Competition</p>
+                              <div className="mt-1 space-y-1">
+                                <p className="text-sm text-gray-900">
+                                  Difficulty: {row.original.competition.difficulty}
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  Competitors: {row.original.competition.competitorCount}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Related Keywords */}
+                        {row.original.suggestions.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900">Related Keywords</h3>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {row.original.suggestions.map((suggestion, index) => (
+                                <span
+                                  key={`${row.original.keyword}-suggestion-${index}`}
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    suggestion.source === 'google'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : suggestion.source === 'content'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-purple-100 text-purple-800'
+                                  }`}
+                                >
+                                  {suggestion.keyword}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span>{keyword.difficulty}/100</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(keyword.lastUpdated).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
       </div>
     </div>
   )

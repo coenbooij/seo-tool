@@ -1,165 +1,372 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
-import { useState } from 'react'
-import TrendCard from '@/components/metrics/trend-card'
+import { Button } from "@/components/ui/button"
+import { ReloadIcon } from "@radix-ui/react-icons"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+} from "@tanstack/react-table"
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import type { Issue, ContentMetrics } from '@/services/seo/types'
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
-interface ContentPage {
-  id: number
+interface PageAnalysis {
   url: string
-  title: string
+  title: string | null
   wordCount: number
   score: number
   lastUpdated: string
-  issues: {
-    type: 'error' | 'warning'
-    message: string
-  }[]
+  metrics: ContentMetrics
+  issues: Issue[]
 }
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
+const columns: ColumnDef<PageAnalysis>[] = [
+  {
+    accessorKey: 'url',
+    header: 'URL',
+    cell: ({ row }) => (
+      <a 
+        href={row.getValue('url') as string} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:underline"
+      >
+        {new URL(row.getValue('url') as string).pathname}
+      </a>
+    ),
+  },
+  {
+    accessorKey: 'title',
+    header: 'Title',
+    cell: ({ row }) => row.getValue('title') as string || 'No title',
+  },
+  {
+    accessorKey: 'wordCount',
+    header: 'Words',
+    cell: ({ row }) => row.getValue('wordCount') as number,
+  },
+  {
+    accessorKey: 'score',
+    header: 'Score',
+    cell: ({ row }) => {
+      const score = row.getValue('score') as number
+      return (
+        <div className={`font-medium ${
+          score >= 90 ? 'text-green-600' :
+          score >= 70 ? 'text-yellow-600' :
+          'text-red-600'
+        }`}>
+          {score}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'lastUpdated',
+    header: 'Last Updated',
+    cell: ({ row }) => new Date(row.getValue('lastUpdated') as string).toLocaleString(),
+  },
+]
 
 export default function ContentPage() {
   const params = useParams()
-  const [filter, setFilter] = useState('all') // all, optimized, needs-work
-  const { data: pages } = useSWR<ContentPage[]>(
-    `/api/projects/${params.id}/content`,
+  const [isReloading, setIsReloading] = useState(false)
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+  const [customSitemapUrl, setCustomSitemapUrl] = useState('')
+  const [currentSitemapUrl, setCurrentSitemapUrl] = useState('')
+  
+  const { data: pages, isLoading, mutate } = useSWR<PageAnalysis[]>(
+    `/api/projects/${params.id}/content${currentSitemapUrl ? `?sitemapUrl=${encodeURIComponent(currentSitemapUrl)}` : ''}`,
     fetcher
   )
 
-  if (!pages) {
-    return <div>Loading...</div>
-  }
-
-  const filteredPages = pages.filter((page) => {
-    if (filter === 'all') return true
-    if (filter === 'optimized') return page.score >= 80
-    return page.score < 80
+  const table = useReactTable({
+    data: pages || [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      sorting,
+      columnFilters,
+    },
   })
 
-  // Calculate metrics
-  const avgScore =
-    Math.round(pages.reduce((acc, p) => acc + p.score, 0) / pages.length)
-  const optimizedPages = pages.filter((p) => p.score >= 80).length
-  const totalWords = pages.reduce((acc, p) => acc + p.wordCount, 0)
+  const handleReload = async () => {
+    setIsReloading(true)
+    await mutate()
+    setIsReloading(false)
+  }
+
+  const handleSitemapChange = async () => {
+    setIsReloading(true)
+    setCurrentSitemapUrl(customSitemapUrl)
+    await mutate()
+    setIsReloading(false)
+  }
+
+  const handleRowClick = (url: string) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [url]: !prev[url]
+    }))
+  }
+
+  if (!pages || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <ReloadIcon className="h-6 w-6 animate-spin text-gray-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <TrendCard
-          title="Average Content Score"
-          value={`${avgScore}/100`}
-          change={3.2}
-          changeTimeframe="last month"
-          trend="up"
-          format="text"
-        />
-        <TrendCard
-          title="Optimized Pages"
-          value={optimizedPages}
-          change={1}
-          changeTimeframe="last month"
-          trend="up"
-        />
-        <TrendCard
-          title="Total Words"
-          value={totalWords}
-          change={5.8}
-          changeTimeframe="last month"
-          trend="up"
-        />
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h1 className="text-xl font-semibold text-gray-900">Content</h1>
-            <p className="mt-2 text-sm text-gray-700">
-              Analyze and optimize your content performance
-            </p>
-          </div>
-          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-            <select
-              id="content-filter"
-              name="content-filter"
-              aria-label="Filter content"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Content Analysis</h1>
+          <p className="text-sm text-gray-500">
+            Analyzing {pages.length} pages from sitemap
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Custom sitemap URL"
+              value={customSitemapUrl}
+              onChange={(e) => setCustomSitemapUrl(e.target.value)}
+              className="px-3 py-1 border rounded-md text-sm"
+            />
+            <Button 
+              onClick={handleSitemapChange}
+              size="sm"
+              variant="secondary"
+              disabled={isReloading}
             >
-              <option value="all">All Pages</option>
-              <option value="optimized">Optimized</option>
-              <option value="needs-work">Needs Work</option>
-            </select>
+              Change Sitemap
+            </Button>
           </div>
+          <Button 
+            onClick={handleReload} 
+            size="sm"
+            variant="ghost"
+            disabled={isReloading}
+          >
+            <ReloadIcon className={`h-4 w-4 mr-2 ${isReloading ? 'animate-spin' : ''}`} />
+            Reload Data
+          </Button>
         </div>
       </div>
 
-      {/* Content Pages */}
-      <div className="space-y-4">
-        {filteredPages.map((page) => (
-          <div key={page.id} className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  <a
-                    href={page.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-indigo-600"
-                  >
-                    {page.title}
-                  </a>
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">{page.url}</p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-500">
-                  {page.wordCount.toLocaleString()} words
-                </div>
-                <div
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    page.score >= 80
-                      ? 'bg-green-100 text-green-800'
-                      : page.score >= 60
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  Score: {page.score}/100
-                </div>
-              </div>
-            </div>
+      {/* Filter Input */}
+      <div className="flex items-center py-4">
+        <input
+          placeholder="Filter URLs..."
+          value={(table.getColumn('url')?.getFilterValue() as string) ?? ''}
+          onChange={(event) =>
+            table.getColumn('url')?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm border border-gray-300 rounded-md px-3 py-2"
+        />
+      </div>
 
-            {/* Content Issues */}
-            {page.issues.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {page.issues.map((issue, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center text-sm"
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full mr-2 ${
-                        issue.type === 'error'
-                          ? 'bg-red-500'
-                          : 'bg-yellow-500'
-                      }`}
-                    ></div>
-                    <span className="text-gray-600">{issue.message}</span>
-                  </div>
+      {/* Pages Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
                 ))}
-              </div>
-            )}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => (
+              <>
+                <TableRow 
+                  key={row.original.url}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(row.original.url)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {expandedRows[row.original.url] && (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="bg-gray-50 p-4">
+                      <div className="space-y-4">
+                        {/* Content Metrics */}
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Content Metrics</h3>
+                          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Title</p>
+                              <p className="mt-1 text-sm text-gray-900 break-words">
+                                {row.original.metrics.title || 'No title'}
+                              </p>
+                              <p className={`text-xs ${
+                                row.original.metrics.titleLength > 10 && row.original.metrics.titleLength < 60
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }`}>
+                                Length: {row.original.metrics.titleLength} characters
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Meta Description</p>
+                              <p className="mt-1 text-sm text-gray-900 break-words">
+                                {row.original.metrics.description || 'No description'}
+                              </p>
+                              <p className={`text-xs ${
+                                row.original.metrics.descriptionLength > 50 && row.original.metrics.descriptionLength < 160
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }`}>
+                                Length: {row.original.metrics.descriptionLength} characters
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Content Stats</p>
+                              <div className="mt-1 space-y-1">
+                                <p className="text-sm text-gray-900">
+                                  Words: {row.original.metrics.wordCount}
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  H1 Tags: {row.original.metrics.h1Count}
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  H2 Tags: {row.original.metrics.h2Count}
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  Images: {row.original.metrics.imageCount} ({row.original.metrics.imagesWithoutAlt} missing alt)
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">Technical Checks</p>
+                              <div className="mt-1 space-y-1">
+                                {[
+                                  { label: 'Canonical URL', value: row.original.metrics.hasCanonical },
+                                  { label: 'Robots Meta', value: row.original.metrics.hasRobots },
+                                  { label: 'Viewport Meta', value: row.original.metrics.hasViewport },
+                                  { label: 'Schema Markup', value: row.original.metrics.hasSchema },
+                                ].map((check) => (
+                                  <p key={check.label} className="text-sm text-gray-900">
+                                    {check.label}: {' '}
+                                    <span className={check.value ? 'text-green-600' : 'text-red-600'}>
+                                      {check.value ? '✓' : '✗'}
+                                    </span>
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-            <div className="mt-4 text-sm text-gray-500">
-              Last updated: {new Date(page.lastUpdated).toLocaleDateString()}
-            </div>
-          </div>
-        ))}
+                        {/* Issues */}
+                        {row.original.issues.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900">Issues</h3>
+                            <div className="mt-2 space-y-2">
+                              {row.original.issues.map((issue, index) => (
+                                <div
+                                  key={index}
+                                  className={`flex items-start space-x-2 text-sm p-2 rounded-md ${
+                                    issue.type === 'error' ? 'bg-red-50' : 'bg-yellow-50'
+                                  }`}
+                                >
+                                  <div
+                                    className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                                      issue.type === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                                    }`}
+                                  />
+                                  <div>
+                                    <p className={`font-medium ${
+                                      issue.type === 'error' ? 'text-red-800' : 'text-yellow-800'
+                                    }`}>
+                                      {issue.message}
+                                    </p>
+                                    <p className={`text-xs ${
+                                      issue.type === 'error' ? 'text-red-600' : 'text-yellow-600'
+                                    }`}>
+                                      Impact: {issue.impact}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
       </div>
     </div>
   )

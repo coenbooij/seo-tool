@@ -1,24 +1,32 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { KeywordAnalyzer } from '@/services/seo/analyzers/keyword-analyzer'
 
 export async function GET(
-  request: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    const id = await Promise.resolve(context.params.id)
+    const id = await Promise.resolve(params.id)
+    if (!id) {
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
+    }
 
+    const projectId = parseInt(id)
+    if (isNaN(projectId)) {
+      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
+    }
+
+    const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify project belongs to user
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(id),
+        id: projectId,
         userId: parseInt(session.user.id)
       }
     })
@@ -27,80 +35,38 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    // For now, return placeholder keywords data
-    // In a real application, this would fetch data from keyword tracking APIs
-    const keywords = [
-      {
-        id: 1,
-        term: 'seo software',
-        position: 3,
-        volume: 12500,
-        difficulty: 67,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 2,
-        term: 'keyword tracking tool',
-        position: 5,
-        volume: 8200,
-        difficulty: 45,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 3,
-        term: 'best seo tools',
-        position: 8,
-        volume: 22000,
-        difficulty: 82,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 4,
-        term: 'backlink analysis',
-        position: 12,
-        volume: 6800,
-        difficulty: 58,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 5,
-        term: 'seo rank tracker',
-        position: 7,
-        volume: 9400,
-        difficulty: 51,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 6,
-        term: 'website optimization tools',
-        position: 15,
-        volume: 14300,
-        difficulty: 73,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 7,
-        term: 'technical seo audit',
-        position: 4,
-        volume: 5600,
-        difficulty: 42,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      },
-      {
-        id: 8,
-        term: 'content optimization',
-        position: 9,
-        volume: 18200,
-        difficulty: 64,
-        lastUpdated: '2024-01-30T10:00:00Z'
-      }
-    ]
+    // Ensure domain has proper protocol
+    const domain = project.domain.startsWith('http') 
+      ? project.domain 
+      : `https://${project.domain}`
 
-    return NextResponse.json(keywords)
+    try {
+      // Fetch the HTML content
+      const response = await fetch(domain)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${domain}: ${response.statusText}`)
+      }
+      const html = await response.text()
+
+      // Analyze keywords
+      const analyzer = new KeywordAnalyzer()
+      const keywords = await analyzer.analyze(html)
+
+      return NextResponse.json({
+        keywords,
+        analyzed: new Date().toISOString()
+      })
+    } catch (error) {
+      console.error('Error analyzing keywords:', error)
+      return NextResponse.json(
+        { error: 'Failed to analyze keywords. Please verify the domain is accessible.' },
+        { status: 500 }
+      )
+    }
   } catch (error) {
-    console.error('Error fetching keywords:', error)
+    console.error('Error in keywords route:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch keywords' },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     )
   }
