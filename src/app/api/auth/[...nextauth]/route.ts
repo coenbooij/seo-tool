@@ -1,79 +1,53 @@
-import NextAuth from "next-auth";
-import { AuthOptions } from "next-auth";
+import NextAuth, { type NextAuthOptions, type Session } from "next-auth";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
+import type { JWT } from "next-auth/jwt";
+import type { Account } from "next-auth";
 import { prisma } from "@/lib/prisma";
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "consent",
+          scope: "openid email profile",
+          prompt: "select_account",
           access_type: "offline",
           response_type: "code",
-          scope: "openid email profile https://www.googleapis.com/auth/analytics.readonly"
-        }
-      }
-    })
+        },
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (account && user) {
-        if (account.provider === "google") {
-          // First, find or create the user
-          const dbUser = await prisma.user.upsert({
-            where: {
-              email: user.email ?? '',
-            },
-            create: {
-              email: user.email ?? '',
-            },
-            update: {},
-          });
-
-          // Then, link the Google account
-          await prisma.googleAccount.upsert({
-            where: {
-              googleId: account.providerAccountId,
-            },
-            update: {
-              accessToken: account.access_token ?? '',
-              refreshToken: account.refresh_token ?? '',
-            },
-            create: {
-              googleId: account.providerAccountId,
-              email: user.email ?? '',
-              accessToken: account.access_token ?? '',
-              refreshToken: account.refresh_token ?? '',
-              userId: dbUser.id,
-            },
-          });
-
-          token.id = dbUser.id.toString(); // Convert to string for NextAuth
-        }
+    async jwt({ token, account }: { token: JWT; account?: Account | null }) {
+      if (account) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.scope = account.scope;
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token?.id && session.user) {
-        session.user.id = token.id;
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (token) {
+        session.user.id = token.sub ?? "";
+        session.accessToken = token.accessToken;
+        session.refreshToken = token.refreshToken;
       }
       return session;
-    }
+    },
   },
   pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
+    signIn: "/auth/signin",
+    error: "/auth/error",
+    newUser: "/dashboard",
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-}
+  }
+};
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };
