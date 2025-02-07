@@ -19,6 +19,7 @@ const navigation = [
   { name: 'Keywords', href: '/keywords' },
   { name: 'Content', href: '/content' },
   { name: 'Technical SEO', href: '/technical' },
+  { name: 'Settings', href: '/settings' },
 ]
 
 export default function ProjectLayout({

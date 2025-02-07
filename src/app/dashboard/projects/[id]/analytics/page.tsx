@@ -4,8 +4,9 @@ import { useParams } from 'next/navigation'
 import useSWR from 'swr'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ReloadIcon } from "@radix-ui/react-icons"
+import { ReloadIcon, GearIcon } from "@radix-ui/react-icons"
 import TrendCard from '@/components/metrics/trend-card'
+import Link from 'next/link'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -32,19 +33,57 @@ interface Analytics {
   bounceRateChange: number
   topPages: PageAnalytics[]
   trafficSources: TrafficSource[]
+  message?: string
+  gaPropertyId?: string
+  gscVerifiedSite?: string
 }
 
 export default function AnalyticsPage() {
-  const params = useParams()
+  const params = useParams();
   const { data: analytics, isLoading, mutate } = useSWR<Analytics>(
     `/api/projects/${params.id}/analytics`,
     fetcher
-  )
+  );
 
-  if (!analytics || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <ReloadIcon className="h-6 w-6 animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return <div>Error loading analytics</div>
+  }
+
+  // Check for configuration message
+  if (analytics.message) {
+    return (
+      <div className="p-6">
+        <div className="mb-4 text-sm text-gray-500">{analytics.message}</div>
+        <Card className="p-6">
+          <h3 className="font-medium mb-4">Current Configuration</h3>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Google Analytics Property ID</p>
+              <p className="text-sm text-gray-500">{analytics.gaPropertyId || 'Not configured'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Google Search Console Verified Site</p>
+              <p className="text-sm text-gray-500">{analytics.gscVerifiedSite || 'Not configured'}</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <Link 
+              href={`/dashboard/projects/${params.id}/settings`}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+            >
+              <GearIcon className="h-4 w-4 mr-2" />
+              Configure Analytics
+            </Link>
+          </div>
+        </Card>
       </div>
     )
   }
@@ -155,5 +194,5 @@ export default function AnalyticsPage() {
         </div>
       </Card>
     </div>
-  )
+  );
 }

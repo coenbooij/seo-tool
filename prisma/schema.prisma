@@ -1,10 +1,11 @@
-generator client {
-  provider = "prisma-client-js"
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 model Project {
@@ -13,6 +14,8 @@ model Project {
   url         String
   domain      String?
   sitemapUrl  String?
+  gaPropertyId String?
+  gscVerifiedSite String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   backlinks   Backlink[]
@@ -56,72 +59,51 @@ model Keyword {
   searchVolume Float         @default(0)
   difficulty   Float         @default(0)
   competition  Float         @default(0)
-  cpc          Float         @default(0)
-  currentRank  Float?
-  density      Float?
-  priority     Float?
-  notes        String?
-  lastChecked  DateTime?
+  currentRank  Int           @default(0)
+  bestRank     Int           @default(0)
+  url          String?
   projectId    String
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  groups       KeywordGroup[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   history      KeywordHistory[]
-
-  @@unique([projectId, keyword])
+  keywordGroupId String?
+  keywordGroup KeywordGroup?  @relation(fields: [keywordGroupId], references: [id], onDelete: SetNull)
 }
 
 model KeywordHistory {
-  id          String    @id @default(cuid())
-  keywordId   String
-  position    Float
-  checkedAt   DateTime  @default(now())
-  keyword     Keyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  keywordId String
+  rank      Int      @default(0)
+  date      DateTime @default(now())
+  keyword   Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
 }
 
 model KeywordGroup {
-  id          String    @id @default(cuid())
-  name        String
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  keywords    Keyword[]
+  id        String     @id @default(cuid())
+  name      String
+  projectId String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  keywords  Keyword[]
 }
 
-enum KeywordIntent {
-  INFORMATIONAL
-  NAVIGATIONAL
-  TRANSACTIONAL
-}
-
-enum BacklinkType {
-  DOFOLLOW
-  NOFOLLOW
-  UGC
-  SPONSORED
-}
-
-enum BacklinkStatus {
-  ACTIVE
-  LOST
-  BROKEN
-}
-
-// Auth Models
 model Account {
-  id                 String    @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?   @db.Text
-  access_token       String?   @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?   @db.Text
-  session_state      String?
-  oauth_token_secret String?
-  oauth_token        String?
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -151,4 +133,22 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum KeywordIntent {
+  INFORMATIONAL
+  NAVIGATIONAL
+  COMMERCIAL
+  TRANSACTIONAL
+}
+
+enum BacklinkType {
+  DOFOLLOW
+  NOFOLLOW
+}
+
+enum BacklinkStatus {
+  ACTIVE
+  LOST
+  BROKEN
 }

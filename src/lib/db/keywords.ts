@@ -50,7 +50,7 @@ export async function getProjectKeywords(projectId: string) {
       projectId,
     },
     include: {
-      groups: {
+      keywordGroup: {
         select: {
           id: true,
           name: true,
@@ -58,17 +58,21 @@ export async function getProjectKeywords(projectId: string) {
       },
       history: {
         orderBy: {
-          checkedAt: 'desc',
+          date: 'desc',
         },
         take: 1,
       },
     },
     orderBy: {
-      priority: 'desc',
+      createdAt: 'desc',
     },
   });
 
-  return keywords;
+  // Transform the response to match the expected interface
+  return keywords.map(keyword => ({
+    ...keyword,
+    groups: keyword.keywordGroup ? [keyword.keywordGroup] : [],
+  }));
 }
 
 export async function getKeywordHistory(keywordId: string) {
@@ -77,7 +81,7 @@ export async function getKeywordHistory(keywordId: string) {
       keywordId,
     },
     orderBy: {
-      checkedAt: 'asc',
+      date: 'asc',
     },
   });
 
@@ -96,10 +100,7 @@ export async function updateKeywordMetrics(keywordId: string, metrics: {
     where: {
       id: keywordId,
     },
-    data: {
-      ...metrics,
-      lastChecked: new Date(),
-    },
+    data: metrics,
   });
 
   // Create history entry for rank changes
@@ -107,8 +108,8 @@ export async function updateKeywordMetrics(keywordId: string, metrics: {
     await prisma.keywordHistory.create({
       data: {
         keywordId,
-        position: metrics.currentRank,
-        checkedAt: new Date(),
+        rank: metrics.currentRank,
+        date: new Date(),
       },
     });
   }
@@ -117,14 +118,14 @@ export async function updateKeywordMetrics(keywordId: string, metrics: {
 }
 
 export async function addKeywordToGroup(keywordId: string, groupId: string) {
-  return prisma.keywordGroup.update({
+  return prisma.keyword.update({
     where: {
-      id: groupId,
+      id: keywordId,
     },
     data: {
-      keywords: {
+      keywordGroup: {
         connect: {
-          id: keywordId,
+          id: groupId,
         },
       },
     },
@@ -132,15 +133,13 @@ export async function addKeywordToGroup(keywordId: string, groupId: string) {
 }
 
 export async function removeKeywordFromGroup(keywordId: string, groupId: string) {
-  return prisma.keywordGroup.update({
+  return prisma.keyword.update({
     where: {
-      id: groupId,
+      id: keywordId,
     },
     data: {
-      keywords: {
-        disconnect: {
-          id: keywordId,
-        },
+      keywordGroup: {
+        disconnect: true,
       },
     },
   });
