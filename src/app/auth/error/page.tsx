@@ -16,6 +16,8 @@ const getErrorMessage = (error: string) => {
       return 'Error occurred while signing in with Google. Please try again.'
     case 'OAuthCallback':
       return 'Error occurred during Google authentication. Please try again.'
+    case 'OAuthAccountNotLinked':
+      return 'This email is already associated with a different sign-in method. Please sign in using your original account.'
     case 'Database':
       return 'Database error occurred. Please try again later.'
     case 'Signin':

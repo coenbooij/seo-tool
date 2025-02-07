@@ -3,14 +3,13 @@
 import { useState } from 'react'
 
 interface ProjectFormProps {
-  onSubmit: (project: { name: string; domain: string; googleProperty?: string }) => void
+  onSubmit: (project: { name: string; url: string }) => void
   onCancel: () => void
 }
 
 export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
   const [name, setName] = useState('')
-  const [domain, setDomain] = useState('')
-  const [googleProperty, setGoogleProperty] = useState('')
+  const [url, setUrl] = useState('')
   const [error, setError] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -18,18 +17,17 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
     setError('')
 
     const trimmedName = name.trim()
-    const trimmedDomain = domain.trim()
+    const trimmedUrl = url.trim()
 
-    if (!trimmedName || !trimmedDomain) {
-      setError('Name and domain are required')
+    if (!trimmedName || !trimmedUrl) {
+      setError('Name and URL are required')
       return
     }
 
     try {
       onSubmit({
         name: trimmedName,
-        domain: trimmedDomain,
-        googleProperty: googleProperty.trim() || undefined
+        url: trimmedUrl
       })
     } catch (error) {
       setError('Failed to create project')
@@ -56,33 +54,17 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
       </div>
 
       <div>
-        <label htmlFor="domain" className="block text-sm font-medium text-gray-700">
-          Domain
+        <label htmlFor="url" className="block text-sm font-medium text-gray-700">
+          URL
         </label>
         <div className="mt-1">
           <input
             type="text"
-            id="domain"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+            id="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
             className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
             placeholder="example.com"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="googleProperty" className="block text-sm font-medium text-gray-700">
-          Google Analytics Property ID (Optional)
-        </label>
-        <div className="mt-1">
-          <input
-            type="text"
-            id="googleProperty"
-            value={googleProperty}
-            onChange={(e) => setGoogleProperty(e.target.value)}
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-            placeholder="UA-XXXXX-Y"
           />
         </div>
       </div>

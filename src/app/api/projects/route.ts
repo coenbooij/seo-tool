@@ -1,96 +1,109 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true
+      },
       where: {
-        userId: parseInt(session.user.id)
+        userId: session.user.id
       },
       orderBy: {
         createdAt: 'desc'
       }
-    })
+    });
 
-    return NextResponse.json(projects)
+    return NextResponse.json(projects);
   } catch (error) {
-    console.error('Error fetching projects:', error)
+    console.error('Error in GET /api/projects:', error);
     return NextResponse.json(
       { error: 'Failed to fetch projects' },
       { status: 500 }
-    )
+    );
   }
 }
 
-export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const json = await request.json()
-    const { name, domain, googleProperty } = json
+    const session = await getServerSession(authOptions);
 
-    // Input validation
-    if (!name?.trim()) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Project name is required' },
-        { status: 400 }
-      )
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    if (!domain?.trim()) {
+    const body = await request.json();
+
+    if (!body?.name?.trim() || !body?.url?.trim()) {
       return NextResponse.json(
-        { error: 'Domain is required' },
+        { error: 'Name and URL are required' },
         { status: 400 }
-      )
+      );
     }
 
-    // Validate domain format
-    const domainRegex = /^([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}$/
-    if (!domainRegex.test(domain.trim())) {
+    // Validate URL
+    try {
+      new URL(body.url);
+    } catch {
       return NextResponse.json(
-        { error: 'Invalid domain format' },
+        { error: 'Invalid URL provided' },
         { status: 400 }
-      )
+      );
     }
 
-    // Validate Google Analytics property ID format (if provided)
-    if (googleProperty) {
-      const gaRegex = /^(UA|G|GTM)-[A-Z0-9\-]+$/i
-      if (!gaRegex.test(googleProperty.trim())) {
-        return NextResponse.json(
-          { error: 'Invalid Google Analytics property ID format' },
-          { status: 400 }
-        )
+    // Ensure user exists
+    await prisma.user.upsert({
+      where: { id: session.user.id },
+      update: {
+        name: session.user.name || null,
+        email: session.user.email || null,
+        image: session.user.image || null
+      },
+      create: {
+        id: session.user.id,
+        name: session.user.name || null,
+        email: session.user.email || null,
+        image: session.user.image || null
       }
-    }
+    });
 
+    const domain = new URL(body.url).hostname;
+    
     const project = await prisma.project.create({
       data: {
-        name: name.trim(),
-        domain: domain.trim().toLowerCase(),
-        googleProperty: googleProperty?.trim(),
-        userId: parseInt(session.user.id)
+        name: body.name.trim(),
+        url: body.url.trim().toLowerCase(),
+        domain,
+        userId: session.user.id
       }
-    })
+    });
 
-    return NextResponse.json(project)
+    return NextResponse.json(project);
   } catch (error) {
-    console.error('Error creating project:', error)
+    console.error('Error in POST /api/projects:', error);
     return NextResponse.json(
       { error: 'Failed to create project' },
       { status: 500 }
-    )
+    );
   }
 }

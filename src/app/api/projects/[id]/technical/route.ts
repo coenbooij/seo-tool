@@ -6,28 +6,21 @@ import { getPageSpeedData } from '@/lib/pagespeed'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = await Promise.resolve(params.id)
-    if (!id) {
-      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
-    }
-
-    const projectId = parseInt(id)
-    if (isNaN(projectId)) {
-      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
-    }
-
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const params = await context.params
+    const { id } = params
+
     const project = await prisma.project.findFirst({
       where: {
-        id: projectId,
-        userId: parseInt(session.user.id)
+        id,
+        userId: String(session.user.id)
       }
     })
 
@@ -42,6 +35,7 @@ export async function GET(
 
     try {
       // Get performance data from PageSpeed Insights
+      // The data structure is already correct from getPageSpeedData
       const technical = await getPageSpeedData(url)
       return NextResponse.json(technical)
     } catch (error) {

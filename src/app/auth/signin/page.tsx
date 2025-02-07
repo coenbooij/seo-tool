@@ -1,8 +1,21 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+
+const getErrorMessage = (error: string) => {
+  switch (error) {
+    case 'OAuthAccountNotLinked':
+      return 'This email is already associated with a different sign-in method. Please sign in using your original account.'
+    case 'OAuthSignin':
+      return 'Error occurred while signing in with Google. Please try again.'
+    case 'OAuthCallback':
+      return 'Error occurred during Google authentication. Please try again.'
+    default:
+      return 'An error occurred during sign in. Please try again.'
+  }
+}
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
@@ -10,17 +23,28 @@ export default function SignIn() {
   const searchParams = useSearchParams()
 
   // Handle URL parameters
-  useState(() => {
+  useEffect(() => {
     const errorFromUrl = searchParams.get('error')
     if (errorFromUrl) {
-      setError(decodeURIComponent(errorFromUrl))
+      setError(getErrorMessage(errorFromUrl))
     }
-  })
+  }, [searchParams])
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
-  };
+    try {
+      setIsLoading(true)
+      setError('')
+      await signIn("google", { 
+        callbackUrl: "/dashboard",
+        redirect: true,
+      })
+    } catch (error) {
+      console.error('Sign in error:', error)
+      setError('Failed to sign in with Google. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

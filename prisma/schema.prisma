@@ -1,5 +1,3 @@
-// This is your Prisma schema file
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,21 +7,121 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            Int
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+model Project {
+  id          String       @id @default(cuid())
+  name        String
+  url         String
+  domain      String?
+  sitemapUrl  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  backlinks   Backlink[]
+  keywords    Keyword[]
+  keywordGroups KeywordGroup[]
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+}
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Backlink {
+  id             String           @id @default(cuid())
+  url            String
+  targetUrl      String
+  anchorText     String
+  domainAuthority Float          @default(0)
+  type          BacklinkType     @default(DOFOLLOW)
+  status        BacklinkStatus   @default(ACTIVE)
+  firstSeen     DateTime         @default(now())
+  lastChecked   DateTime?
+  projectId     String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  authority     Float            @default(0)
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  history       BacklinkHistory[]
+}
+
+model BacklinkHistory {
+  id             String         @id @default(cuid())
+  backlinkId     String
+  status         BacklinkStatus @default(ACTIVE)
+  domainAuthority Float         @default(0)
+  checkedAt      DateTime       @default(now())
+  backlink       Backlink       @relation(fields: [backlinkId], references: [id], onDelete: Cascade)
+}
+
+model Keyword {
+  id           String         @id @default(cuid())
+  keyword      String
+  intent       KeywordIntent  @default(INFORMATIONAL)
+  searchVolume Float         @default(0)
+  difficulty   Float         @default(0)
+  competition  Float         @default(0)
+  cpc          Float         @default(0)
+  currentRank  Float?
+  density      Float?
+  priority     Float?
+  notes        String?
+  lastChecked  DateTime?
+  projectId    String
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  groups       KeywordGroup[]
+  history      KeywordHistory[]
+
+  @@unique([projectId, keyword])
+}
+
+model KeywordHistory {
+  id          String    @id @default(cuid())
+  keywordId   String
+  position    Float
+  checkedAt   DateTime  @default(now())
+  keyword     Keyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+}
+
+model KeywordGroup {
+  id          String    @id @default(cuid())
+  name        String
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  keywords    Keyword[]
+}
+
+enum KeywordIntent {
+  INFORMATIONAL
+  NAVIGATIONAL
+  TRANSACTIONAL
+}
+
+enum BacklinkType {
+  DOFOLLOW
+  NOFOLLOW
+  UGC
+  SPONSORED
+}
+
+enum BacklinkStatus {
+  ACTIVE
+  LOST
+  BROKEN
+}
+
+// Auth Models
+model Account {
+  id                 String    @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?   @db.Text
+  access_token       String?   @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?   @db.Text
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -31,13 +129,13 @@ model Account {
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
-  userId       Int
+  userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
+  id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
@@ -53,91 +151,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model Project {
-  id               Int               @id @default(autoincrement())
-  name             String
-  domain           String
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  userId           Int
-  user             User             @relation(fields: [userId], references: [id])
-  keywords         Keyword[]
-  keywordGroups    KeywordGroup[]
-  competitors      Competitor[]
-}
-
-model Keyword {
-  id              Int           @id @default(autoincrement())
-  keyword         String
-  searchVolume    Int?         // Monthly search volume
-  difficulty      Int?         // 0-100 score
-  intent          KeywordIntent
-  priority        Int?         // Calculated priority score
-  lastChecked     DateTime?    
-  currentRank     Int?         // Current position in SERP
-  previousRank    Int?         // Last recorded position
-  ctr             Float?       // Click-through rate
-  impressions     Int?         // Number of SERP impressions
-  clicks          Int?         // Number of clicks from SERP
-  bounceRate      Float?       // Bounce rate for this keyword's landing page
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  projectId       Int
-  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  groups          KeywordGroup[]
-  history         KeywordHistory[]
-  suggestedBy     Keyword?     @relation("RelatedKeywords", fields: [suggestedById], references: [id])
-  suggestedById   Int?
-  suggestions     Keyword[]    @relation("RelatedKeywords")
-  competitors     CompetitorKeyword[]
-  location        String?      // Geographic targeting
-  device          String?      // Desktop/Mobile/Both
-  notes           String?      // Custom notes
-}
-
-enum KeywordIntent {
-  INFORMATIONAL
-  TRANSACTIONAL
-  NAVIGATIONAL
-}
-
-model KeywordHistory {
-  id          Int      @id @default(autoincrement())
-  keywordId   Int
-  keyword     Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
-  rank        Int?
-  ctr         Float?
-  impressions Int?
-  clicks      Int?
-  date        DateTime @default(now())
-}
-
-model KeywordGroup {
-  id        Int       @id @default(autoincrement())
-  name      String
-  projectId Int
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  keywords  Keyword[]
-}
-
-model Competitor {
-  id        Int                 @id @default(autoincrement())
-  domain    String
-  projectId Int
-  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  keywords  CompetitorKeyword[]
-}
-
-model CompetitorKeyword {
-  id           Int        @id @default(autoincrement())
-  competitorId Int
-  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
-  keywordId    Int
-  keyword      Keyword    @relation(fields: [keywordId], references: [id], onDelete: Cascade)
-  rank         Int?
-  updatedAt    DateTime   @updatedAt
-
-  @@unique([competitorId, keywordId])
 }

@@ -2,167 +2,158 @@
 
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
-import StatCard from '@/components/dashboard/stat-card'
-import { ChartBarIcon, UsersIcon, ArrowUpRightIcon, DocumentIcon } from '@heroicons/react/24/outline'
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { ReloadIcon } from "@radix-ui/react-icons"
+import TrendCard from '@/components/metrics/trend-card'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-interface AnalyticsData {
-  traffic: {
-    total: number
-    organic: number
-    direct: number
-    referral: number
-    change: number
-  }
-  engagement: {
-    avgTimeOnPage: string
-    bounceRate: number
-    pagesPerSession: number
-    change: number
-  }
-  conversions: {
-    total: number
-    rate: number
-    goals: {
-      newsletter: number
-      contact: number
-      purchase: number
-    }
-    change: number
-  }
-  topPages: Array<{
-    url: string
-    views: number
-    conversions: number
-  }>
-  timeline: {
-    daily: Array<{
-      date: string
-      visits: number
-      conversions: number
-    }>
-  }
+interface PageAnalytics {
+  path: string
+  pageViews: number
+  change: number
 }
 
-export default function Analytics() {
+interface TrafficSource {
+  source: string
+  users: number
+  change: number
+}
+
+interface Analytics {
+  users: number
+  usersChange: number
+  pageViews: number
+  pageViewsChange: number
+  avgSessionDuration: number
+  avgSessionDurationChange: number
+  bounceRate: number
+  bounceRateChange: number
+  topPages: PageAnalytics[]
+  trafficSources: TrafficSource[]
+}
+
+export default function AnalyticsPage() {
   const params = useParams()
-  const { data: analytics, isLoading } = useSWR<AnalyticsData>(
+  const { data: analytics, isLoading, mutate } = useSWR<Analytics>(
     `/api/projects/${params.id}/analytics`,
     fetcher
   )
 
-  if (isLoading) {
+  if (!analytics || isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 rounded-lg bg-gray-100 animate-pulse" />
-          ))}
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-96 rounded-lg bg-gray-100 animate-pulse" />
-          ))}
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <ReloadIcon className="h-6 w-6 animate-spin text-gray-500" />
       </div>
     )
   }
 
-  if (!analytics) {
-    return null
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Traffic"
-          value={analytics.traffic.total}
-          icon={<ChartBarIcon className="h-6 w-6" />}
-          description={`${analytics.traffic.change > 0 ? '+' : ''}${analytics.traffic.change}%`}
-          iconColor="indigo"
-          format="compact"
-        />
-        <StatCard
-          title="Organic Traffic"
-          value={analytics.traffic.organic}
-          icon={<UsersIcon className="h-6 w-6" />}
-          description={`${analytics.traffic.change > 0 ? '+' : ''}${analytics.traffic.change}%`}
-          iconColor="blue"
-          format="compact"
-        />
-        <StatCard
-          title="Conversion Rate"
-          value={analytics.conversions.rate}
-          icon={<ArrowUpRightIcon className="h-6 w-6" />}
-          description={`${analytics.conversions.change > 0 ? '+' : ''}${analytics.conversions.change}%`}
-          iconColor="green"
-          format="percentage"
-        />
-        <StatCard
-          title="Pages/Session"
-          value={analytics.engagement.pagesPerSession}
-          icon={<DocumentIcon className="h-6 w-6" />}
-          description={`${analytics.engagement.change > 0 ? '+' : ''}${analytics.engagement.change}%`}
-          iconColor="purple"
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
+          <p className="text-sm text-gray-500">Overview of your site&apos;s performance</p>
+        </div>
+        <Button
+          onClick={() => mutate()}
+          size="sm"
+          variant="ghost"
+        >
+          <ReloadIcon className="h-4 w-4 mr-2" />
+          Refresh Data
+        </Button>
+      </div>
+
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <TrendCard
+          title="Users"
+          value={analytics.users}
+          change={analytics.usersChange}
+          changeTimeframe="vs last period"
+          trend={analytics.usersChange >= 0 ? "up" : "down"}
           format="numeric"
         />
+        <TrendCard
+          title="Page Views"
+          value={analytics.pageViews}
+          change={analytics.pageViewsChange}
+          changeTimeframe="vs last period"
+          trend={analytics.pageViewsChange >= 0 ? "up" : "down"}
+          format="numeric"
+        />
+        <TrendCard
+          title="Avg. Session Duration"
+          value={analytics.avgSessionDuration}
+          change={analytics.avgSessionDurationChange}
+          changeTimeframe="vs last period"
+          trend={analytics.avgSessionDurationChange >= 0 ? "up" : "down"}
+          format="numeric"
+        />
+        <TrendCard
+          title="Bounce Rate"
+          value={analytics.bounceRate}
+          change={analytics.bounceRateChange}
+          changeTimeframe="vs last period"
+          trend={analytics.bounceRateChange <= 0 ? "up" : "down"}
+          format="percentage"
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-6">
-            <h3 className="font-semibold">Traffic Sources</h3>
-            <div className="mt-4 space-y-4">
-              {[
-                { label: 'Organic', value: analytics.traffic.organic },
-                { label: 'Direct', value: analytics.traffic.direct },
-                { label: 'Referral', value: analytics.traffic.referral }
-              ].map((source) => (
-                <div key={source.label} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{source.label}</span>
-                  <span className="font-medium">{source.value.toLocaleString()}</span>
-                </div>
-              ))}
+      {/* Top Pages */}
+      <Card className="p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Top Pages</h2>
+        <div className="space-y-4">
+          {analytics.topPages.map((page, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {page.path}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {page.pageViews} views
+                </p>
+              </div>
+              <div className="ml-4">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  page.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {page.change >= 0 ? '+' : ''}{page.change}%
+                </span>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
+      </Card>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-6">
-            <h3 className="font-semibold">Top Pages</h3>
-            <div className="mt-4 space-y-4">
-              {analytics.topPages.map((page) => (
-                <div key={page.url} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 truncate max-w-[200px]">
-                    {page.url}
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-600">
-                      {page.views.toLocaleString()} views
-                    </span>
-                    <span className="text-sm text-green-600">
-                      {page.conversions} conv.
-                    </span>
-                  </div>
-                </div>
-              ))}
+      {/* Traffic Sources */}
+      <Card className="p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Traffic Sources</h2>
+        <div className="space-y-4">
+          {analytics.trafficSources.map((source, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {source.source}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {source.users} users
+                </p>
+              </div>
+              <div className="ml-4">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  source.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {source.change >= 0 ? '+' : ''}{source.change}%
+                </span>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-      </div>
-
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="p-6">
-          <h3 className="font-semibold mb-4">Traffic Over Time</h3>
-          <div className="h-[300px]">
-            <div className="text-sm text-gray-500 text-center pt-20">
-              Coming soon: Traffic trend visualization will be added in the next update.
-            </div>
-          </div>
-        </div>
-      </div>
+      </Card>
     </div>
   )
 }

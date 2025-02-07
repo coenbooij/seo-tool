@@ -1,12 +1,14 @@
-import './globals.css'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import './globals.css'
 import { AuthProvider } from '@/providers/auth-provider'
+import { Toaster } from '@/components/ui/toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'SEO Tool',
-  description: 'Advanced SEO analysis and monitoring tool',
+  description: 'A comprehensive SEO analysis and optimization tool',
 }
 
 export default function RootLayout({
@@ -18,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>{children}</AuthProvider>
+        <Toaster />
       </body>
     </html>
   )

@@ -1,11 +1,13 @@
-import NextAuth, { type NextAuthOptions, type Session } from "next-auth";
+import NextAuth, { type NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
-import type { JWT } from "next-auth/jwt";
-import type { Account } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, checkDatabaseConnection } from "@/lib/prisma";
+
+// Check database connection when the module loads
+checkDatabaseConnection().catch(console.error);
 
 export const authOptions: NextAuthOptions = {
+  debug: true,
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -22,22 +24,134 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }: { token: JWT; account?: Account | null }) {
-      if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.scope = account.scope;
+    async signIn({ user, account, profile }) {
+      try {
+        console.log('Sign in attempt:', {
+          user: { id: user.id, email: user.email },
+          account: { provider: account?.provider },
+          profile: { email: profile?.email }
+        });
+
+        if (!user.email) {
+          console.error('No email provided');
+          return false;
+        }
+
+        // Check if user already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { accounts: true },
+        });
+
+        if (existingUser) {
+          // User exists, create new account if none exists for this provider
+          if (!existingUser.accounts.length) {
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account?.type || 'oauth',
+                provider: account?.provider || 'google',
+                providerAccountId: account?.providerAccountId || user.id,
+                access_token: account?.access_token,
+                refresh_token: account?.refresh_token,
+                scope: account?.scope,
+              },
+            });
+          }
+          return true;
+        }
+
+        // Create new user if they don't exist
+        await prisma.user.create({
+          data: {
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            accounts: {
+              create: {
+                type: account?.type || 'oauth',
+                provider: account?.provider || 'google',
+                providerAccountId: account?.providerAccountId || user.id,
+                access_token: account?.access_token,
+                refresh_token: account?.refresh_token,
+                scope: account?.scope,
+              },
+            },
+          },
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Sign in error:', error);
+        return false;
       }
-      return token;
     },
-    async session({ session, token }: { session: Session; token: JWT }) {
-      if (token) {
-        session.user.id = token.sub ?? "";
-        session.accessToken = token.accessToken;
-        session.refreshToken = token.refreshToken;
+    async jwt({ token, user, account }) {
+      try {
+        if (user) {
+          // Get the user from database to ensure we have the correct ID
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! }
+          });
+          
+          if (dbUser) {
+            token.sub = dbUser.id;
+            token.id = dbUser.id;
+          }
+        }
+        if (account) {
+          token.accessToken = account.access_token;
+          token.refreshToken = account.refresh_token;
+          token.scope = account.scope;
+        }
+        console.log('JWT token generated:', { 
+          id: token.id,
+          sub: token.sub,
+          email: token.email,
+          hasAccessToken: !!token.accessToken
+        });
+        return token;
+      } catch (error) {
+        console.error('JWT callback error:', error);
+        return token;
       }
-      return session;
     },
+    async session({ session, token }) {
+      try {
+        if (token && token.sub) {
+          session.user = {
+            ...session.user,
+            id: token.sub
+          };
+          if (token.accessToken) {
+            session.accessToken = token.accessToken as string;
+          }
+          if (token.refreshToken) {
+            session.refreshToken = token.refreshToken as string;
+          }
+        } else {
+          throw new Error('No user ID in token');
+        }
+        
+        console.log('Session created:', { 
+          userId: session.user.id,
+          email: session.user.email,
+          hasAccessToken: !!session.accessToken
+        });
+        return session;
+      } catch (error) {
+        console.error('Session callback error:', error);
+        return session;
+      }
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      console.log('Sign in successful:', user.email);
+    },
+    async signOut({ session }) {
+      console.log('Sign out:', session?.user?.email);
+    }
   },
   pages: {
     signIn: "/auth/signin",

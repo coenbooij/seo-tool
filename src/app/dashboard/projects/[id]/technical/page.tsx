@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
-import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { ReloadIcon } from "@radix-ui/react-icons"
 import TrendCard from '@/components/metrics/trend-card'
@@ -70,8 +69,9 @@ export default function TechnicalPage() {
 
   if (!technical || isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <ReloadIcon className="h-6 w-6 animate-spin text-gray-500" />
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <ReloadIcon className="h-8 w-8 animate-spin text-gray-500" />
+        <p className="text-sm text-gray-500">Analyzing technical performance, this may take a while...</p>
       </div>
     )
   }
@@ -81,12 +81,6 @@ export default function TechnicalPage() {
       {/* Header with PageSpeed Logo and Reload Button */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Image 
-            src="https://www.gstatic.com/pagespeed/insights/ui/logo_48pt_56dp.svg"
-            alt="PageSpeed Insights"
-            width={28}
-            height={28}
-          />
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">PageSpeed Insights</h1>
             <p className="text-sm text-gray-500">

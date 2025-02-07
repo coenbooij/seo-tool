@@ -8,10 +8,19 @@ import TrendCard from '@/components/metrics/trend-card'
 import Link from 'next/link'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
 
-const fetcher = (url: string) => fetch(url).then(r => r.json())
+const fetcher = async (url: string) => {
+  const response = await fetch(url)
+  const data = await response.json()
+  
+  if (!response.ok) {
+    throw new Error(data.error || 'An error occurred')
+  }
+  
+  return data
+}
 
 interface Project {
-  id: number
+  id: string
   name: string
   domain: string
   createdAt: string
@@ -20,9 +29,7 @@ interface Project {
 interface DashboardStats {
   totalProjects: number
   averagePosition: number
-  totalBacklinks: number
   positionChange: number
-  backlinksChange: number
 }
 
 export default function Dashboard() {
@@ -50,9 +57,10 @@ export default function Dashboard() {
 
   const isLoading = !projects && !projectsError
   const isError = projectsError || statsError
+  const projectsToShow = Array.isArray(projects) ? projects.slice(0, 5) : []
 
   return (
-    <div>
+    <div className="min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">
@@ -72,7 +80,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <StatCard
           title="Total Projects"
           value={stats?.totalProjects || 0}
@@ -106,17 +114,6 @@ export default function Dashboard() {
           format="numeric"
           tooltip="Average position across all tracked keywords"
         />
-
-        <TrendCard
-          title="Total Backlinks"
-          value={stats?.totalBacklinks || 0}
-          change={stats?.backlinksChange || 0}
-          changeTimeframe="last month"
-          trend={stats?.backlinksChange && stats.backlinksChange > 0 ? 'up' : 'down'}
-          loading={isLoading}
-          format="compact"
-          tooltip="Total number of backlinks across all projects"
-        />
       </div>
 
       <div className="mt-8">
@@ -130,15 +127,13 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {isError && (
+        {isError ? (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <p className="text-sm text-red-700">
               Failed to load dashboard data. Please try refreshing the page.
             </p>
           </div>
-        )}
-
-        {isLoading ? (
+        ) : isLoading ? (
           <div className="bg-white shadow overflow-hidden sm:rounded-md animate-pulse">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="px-6 py-4 border-b border-gray-200">
@@ -152,50 +147,54 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        ) : projects?.length === 0 ? (
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <div className="px-6 py-12 text-center">
-              <p className="text-sm text-gray-500">
-                No projects yet.{' '}
-                <Link
-                  href="/dashboard/projects/new"
-                  className="font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  Create your first project
-                </Link>
-              </p>
-            </div>
-          </div>
         ) : (
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul className="divide-y divide-gray-200">
-              {projects?.slice(0, 5).map((project) => (
-                <li key={project.id}>
-                  <Link
-                    href={`/dashboard/projects/${project.id}`}
-                    className="block hover:bg-gray-50"
-                  >
-                    <div className="px-6 py-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-indigo-600 truncate">
-                            {project.domain}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-500">
-                            Last updated {new Date(project.createdAt).toLocaleDateString()}
-                          </p>
+          <div>
+            {projectsToShow.length === 0 ? (
+              <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                <div className="px-6 py-12 text-center">
+                  <p className="text-sm text-gray-500">
+                    No projects yet.{' '}
+                    <Link
+                      href="/dashboard/projects/new"
+                      className="font-medium text-indigo-600 hover:text-indigo-500"
+                    >
+                      Create your first project
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                <ul className="divide-y divide-gray-200">
+                  {projectsToShow.map((project) => (
+                    <li key={project.id}>
+                      <Link
+                        href={`/dashboard/projects/${project.id}`}
+                        className="block hover:bg-gray-50"
+                      >
+                        <div className="px-6 py-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-indigo-600 truncate">
+                                {project.name}
+                              </p>
+                              <p className="mt-1 text-sm text-gray-500">
+                                Last updated {new Date(project.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="ml-2 flex-shrink-0 flex">
+                              <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                Active
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="ml-2 flex-shrink-0 flex">
-                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            Active
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>

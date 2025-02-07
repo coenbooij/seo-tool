@@ -62,7 +62,9 @@ async function fetchSitemap(baseUrl: string, customSitemapUrl?: string): Promise
 
       return sitemapUrls
     } catch (error) {
-      console.error(`Error fetching sitemap from ${url}:`, error)
+      if (error instanceof Error) {
+        console.error(`Error fetching sitemap from ${url}:`, error.message)
+      }
       continue
     }
   }
@@ -93,7 +95,9 @@ async function analyzePage(url: string): Promise<PageAnalysis> {
       issues: analysis.issues
     }
   } catch (error) {
-    console.error(`Error analyzing page ${url}:`, error)
+    if (error instanceof Error) {
+      console.error(`Error analyzing page ${url}:`, error.message)
+    }
     return {
       url,
       title: null,
@@ -101,21 +105,21 @@ async function analyzePage(url: string): Promise<PageAnalysis> {
       score: 0,
       lastUpdated: new Date().toISOString(),
       metrics: {
-        title: null,
-        titleLength: 0,
-        description: null,
-        descriptionLength: 0,
-        h1Count: 0,
-        h1Tags: [],
-        h2Count: 0,
-        h2Tags: [],
-        imageCount: 0,
-        imagesWithoutAlt: 0,
-        wordCount: 0,
-        hasCanonical: false,
-        hasRobots: false,
-        hasViewport: false,
-        hasSchema: false,
+        title: metrics.content?.title ?? '',
+        titleLength: metrics.content?.titleLength ?? 0,
+        description: metrics.content?.description ?? '',
+        descriptionLength: metrics.content?.descriptionLength ?? 0,
+        h1Count: metrics.content?.h1Count ?? 0,
+        h1Tags: metrics.content?.h1Tags ?? [],
+        h2Count: metrics.content?.h2Count ?? 0,
+        h2Tags: metrics.content?.h2Tags ?? [],
+        imageCount: metrics.content?.imageCount ?? 0,
+        imagesWithoutAlt: metrics.content?.imagesWithoutAlt ?? 0,
+        wordCount: metrics.content?.wordCount ?? 0,
+        hasCanonical: metrics.content?.hasCanonical ?? false,
+        hasRobots: metrics.content?.hasRobots ?? false,
+        hasViewport: metrics.content?.hasViewport ?? false,
+        hasSchema: metrics.content?.hasSchema ?? false,
         metaTags: []
       },
       issues: [{
@@ -129,31 +133,23 @@ async function analyzePage(url: string): Promise<PageAnalysis> {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const customSitemapUrl = searchParams.get('sitemapUrl')
-
-    const id = params.id
-    if (!id) {
-      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
-    }
-
-    const projectId = parseInt(id)
-    if (isNaN(projectId)) {
-      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
-    }
-
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const params = await context.params
+    const { id } = params
+    const searchParams = request.nextUrl.searchParams
+    const customSitemapUrl = searchParams.get('sitemapUrl')
+
     const project = await prisma.project.findFirst({
       where: {
-        id: projectId,
-        userId: parseInt(session.user.id)
+        id,
+        userId: String(session.user.id)
       }
     })
 
@@ -161,13 +157,24 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
+    // Update project with new sitemap URL if provided
+    if (customSitemapUrl) {
+      await prisma.project.update({
+        where: { id },
+        data: { sitemapUrl: customSitemapUrl || null }
+      })
+    }
+
     // Ensure domain has proper protocol
     const domain = project.domain.startsWith('http') 
       ? project.domain 
       : `https://${project.domain}`
 
+    // Use saved sitemap URL if available and no custom URL provided
+    const sitemapToUse = customSitemapUrl || project.sitemapUrl || undefined
+
     // Fetch sitemap and get all URLs
-    const sitemapUrls = await fetchSitemap(domain, customSitemapUrl || undefined)
+    const sitemapUrls = await fetchSitemap(domain, sitemapToUse)
     if (sitemapUrls.length === 0) {
       return NextResponse.json(
         { error: 'No URLs found in sitemap' },
@@ -180,9 +187,14 @@ export async function GET(
       sitemapUrls.slice(0, 50).map(url => analyzePage(url.loc))
     )
 
-    return NextResponse.json(results)
+    return NextResponse.json({
+      pages: results,
+      sitemapUrl: sitemapToUse || null
+    })
   } catch (error) {
-    console.error('Error in content analysis:', error)
+    if (error instanceof Error) {
+      console.error('Error in content analysis:', error.message)
+    }
     return NextResponse.json(
       { error: 'Failed to analyze content' },
       { status: 500 }

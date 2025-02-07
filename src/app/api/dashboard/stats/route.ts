@@ -13,22 +13,52 @@ export async function GET() {
         { status: 401 }
       )
     }
-    
 
     // Get basic project stats
     const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+      },
       where: {
-        userId: parseInt(session.user.id)
+        userId: String(session.user.id)
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     })
 
+    // Get average position data
+    const keywordStats = await prisma.keyword.aggregate({
+      where: {
+        project: {
+          userId: String(session.user.id)
+        }
+      },
+      _avg: {
+        currentRank: true
+      }
+    })
+
+    // Calculate position change (mock data for now)
+    const positionChange = -2 // Negative means improvement in rank
+
     return NextResponse.json({
       totalProjects: projects.length,
-      recentProjects: projects.slice(0, 5),
-      lastUpdated: new Date().toISOString()
+      averagePosition: Math.round(keywordStats._avg.currentRank || 0),
+      positionChange
     })
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error)
-    return NextResponse.json({ error: 'Failed to fetch dashboard stats' }, { status: 500 })
+    if (error instanceof Error) {
+      console.error('Error fetching dashboard stats:', error.message)
+    }
+    return NextResponse.json(
+      { error: 'Failed to fetch dashboard stats' },
+      { status: 500 }
+    )
   }
 }

@@ -1,215 +1,291 @@
-import { JSDOM } from 'jsdom'
-import natural from 'natural'
+import { KeywordIntent } from '@prisma/client'
+import type { KeywordData } from '@/lib/db/keywords'
+import { calculatePriorityScore, calculateKeywordDensity, type KeywordScoreInput } from '../utils/keyword-scoring'
 
-interface KeywordUsage {
-  keyword: string
-  count: number
-  positions: {
-    title: boolean
-    description: boolean
-    headings: boolean
-    content: boolean
-  }
-  density: number
-}
-
-interface CompetitorData {
-  url: string
-  title: string
-  description: string
-  keywords: KeywordUsage[]
-}
-
-interface KeywordMetrics {
-  keyword: string
-  usage: KeywordUsage
-  competition: {
-    difficulty: number // 0-100
-    competitorCount: number
-    topCompetitors: CompetitorData[]
-  }
-  suggestions: Array<{
-    keyword: string
-    source: 'google' | 'content' | 'related'
-  }>
-  serp?: {
-    position?: number
-    lastChecked?: string
-    changes?: number
+export interface KeywordAnalysisResult {
+  keywords: KeywordData[]
+  suggestedKeywords: KeywordData[]
+  competitorKeywords: KeywordData[]
+  analysis: {
+    totalKeywords: number
+    byIntent: {
+      [key in KeywordIntent]: number
+    }
+    avgDifficulty: number
+    avgSearchVolume: number
+    topOpportunities: KeywordData[]
+    gapAnalysis: {
+      missingHighValue: KeywordData[]
+      competitorStrengths: KeywordData[]
+      quickWins: KeywordData[]
+    }
   }
 }
 
 export class KeywordAnalyzer {
-  private tokenizer: natural.WordTokenizer
-  private language: typeof natural.PorterStemmer
+  private content: string
+  private url: string
+  private competitors: string[]
 
-  constructor() {
-    this.tokenizer = new natural.WordTokenizer()
-    this.language = natural.PorterStemmer
+  constructor(content: string, url: string, competitors: string[] = []) {
+    this.content = content
+    this.url = url
+    this.competitors = competitors
   }
 
-  private cleanText(text: string): string {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-  }
-
-  private extractKeywords(text: string): Map<string, number> {
-    const words = this.tokenizer.tokenize(this.cleanText(text)) || []
-    const frequencies = new Map<string, number>()
-    
-    // Group words into potential keyword phrases (1-4 words)
-    for (let i = 0; i < words.length; i++) {
-      for (let len = 1; len <= 4 && i + len <= words.length; len++) {
-        const phrase = words.slice(i, i + len).join(' ')
-        frequencies.set(phrase, (frequencies.get(phrase) || 0) + 1)
-      }
-    }
-
-    return frequencies
-  }
-
-  private calculateDensity(count: number, totalWords: number): number {
-    return (count / totalWords) * 100
-  }
-
-  private async fetchKeywordSuggestions(term: string): Promise<string[]> {
-    const url = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(term)}`
+  async analyzeKeywords(currentKeywords: KeywordData[]): Promise<KeywordAnalysisResult> {
     try {
-      const response = await fetch(url)
-      const data = await response.json()
-      return data[1] as string[] || []
+      // Extract keywords from content
+      const extractedKeywords = await this.extractKeywordsFromContent()
+      
+      // Get competitor keywords
+      const competitorKeywords = await this.getCompetitorKeywords()
+      
+      // Generate keyword suggestions
+      const suggestedKeywords = await this.generateKeywordSuggestions(currentKeywords)
+      
+      // Calculate metrics for all keywords
+      const allKeywords = [
+        ...currentKeywords,
+        ...extractedKeywords,
+        ...competitorKeywords,
+        ...suggestedKeywords
+      ]
+
+      // Calculate priority scores and keyword density
+      const enrichedKeywords = allKeywords.map(keyword => ({
+        ...keyword,
+        priority: calculatePriorityScore(this.toKeywordScoreInput(keyword)),
+        density: calculateKeywordDensity(this.content, keyword.keyword)
+      }))
+
+      // Deduplicate keywords
+      const uniqueKeywords = this.deduplicateKeywords(enrichedKeywords)
+
+      // Perform gap analysis
+      const gapAnalysis = this.performGapAnalysis(uniqueKeywords, currentKeywords)
+
+      // Calculate statistics
+      const stats = this.calculateStatistics(currentKeywords)
+
+      // Find best opportunities
+      const topOpportunities = this.findTopOpportunities(uniqueKeywords, currentKeywords)
+
+      return {
+        keywords: currentKeywords,
+        suggestedKeywords: this.filterNewKeywords(suggestedKeywords, currentKeywords),
+        competitorKeywords: this.filterNewKeywords(competitorKeywords, currentKeywords),
+        analysis: {
+          totalKeywords: currentKeywords.length,
+          byIntent: stats.byIntent,
+          avgDifficulty: stats.avgDifficulty,
+          avgSearchVolume: stats.avgSearchVolume,
+          topOpportunities,
+          gapAnalysis
+        }
+      }
     } catch (error) {
-      console.error(`Error fetching suggestions for "${term}":`, error)
+      console.error('Error in keyword analysis:', error)
+      throw error
+    }
+  }
+
+  private toKeywordScoreInput(keyword: KeywordData): KeywordScoreInput {
+    return {
+      searchVolume: keyword.searchVolume ?? null,
+      difficulty: keyword.difficulty ?? null,
+      currentRank: keyword.currentRank ?? null,
+      intent: keyword.intent ?? null
+    }
+  }
+
+  private async extractKeywordsFromContent(): Promise<KeywordData[]> {
+    try {
+      // Extract potential keywords from content using NLP
+      const keywords = this.extractKeywordPhrases(this.content)
+
+      // Get search metrics for found keywords
+      const keywordsWithMetrics = await this.enrichKeywordData(keywords)
+
+      return keywordsWithMetrics
+    } catch (error) {
+      console.error('Error extracting keywords:', error)
       return []
     }
   }
 
-  private async getCompetitorData(term: string): Promise<CompetitorData[]> {
-    // In a real implementation, you'd scrape Google search results
-    // For now, return empty array to avoid rate limiting
-    return []
-  }
-
-  private calculateDifficulty(competitors: CompetitorData[], term: string): number {
-    if (competitors.length === 0) return 50 // Default medium difficulty
-
-    // Factors that increase difficulty:
-    // 1. Number of competitors optimizing for the keyword
-    // 2. Keyword presence in titles/descriptions
-    // 3. Content length and quality signals
+  private extractKeywordPhrases(content: string): string[] {
+    // Basic keyword extraction (in production, use NLP library)
+    const words = content.toLowerCase().split(/\W+/)
+    const phrases: string[] = []
     
-    let score = 0
-    const maxScore = 100
-
-    // Basic scoring based on competitor count
-    score += Math.min((competitors.length / 10) * 50, 50)
-
-    // Optimization scoring
-    const optimizationScore = competitors.reduce((acc, competitor) => {
-      let subScore = 0
-      const keywordData = competitor.keywords.find(k => 
-        k.keyword.toLowerCase() === term.toLowerCase()
-      )
-      if (keywordData) {
-        if (keywordData.positions.title) subScore += 10
-        if (keywordData.positions.description) subScore += 5
-        if (keywordData.positions.headings) subScore += 5
-        subScore += Math.min(keywordData.density * 10, 10) // Max 10 points for density
+    // Extract 1-3 word phrases
+    for (let i = 0; i < words.length; i++) {
+      phrases.push(words[i]) // Single word
+      if (i < words.length - 1) {
+        phrases.push(`${words[i]} ${words[i + 1]}`) // Two words
       }
-      return acc + (subScore / 30) * 50 // Convert to 0-50 scale
-    }, 0) / competitors.length
-
-    score += optimizationScore
-    return Math.min(Math.round(score), maxScore)
-  }
-
-  async analyze(html: string): Promise<KeywordMetrics[]> {
-    const dom = new JSDOM(html)
-    const document = dom.window.document
-
-    // Extract text content
-    const title = document.title || ''
-    const description = document.querySelector('meta[name="description"]')?.getAttribute('content') || ''
-    const h1s = Array.from(document.getElementsByTagName('h1')).map(el => el.textContent || '').join(' ')
-    const h2s = Array.from(document.getElementsByTagName('h2')).map(el => el.textContent || '').join(' ')
-    const bodyText = document.body?.textContent || ''
-
-    // Calculate word frequencies
-    const titleKeywords = this.extractKeywords(title)
-    const descriptionKeywords = this.extractKeywords(description)
-    const headingKeywords = this.extractKeywords(`${h1s} ${h2s}`)
-    const contentKeywords = this.extractKeywords(bodyText)
-
-    // Combine all unique keywords
-    const keywords = new Set<string>()
-    Array.from(titleKeywords.keys()).forEach(k => keywords.add(k))
-    Array.from(descriptionKeywords.keys()).forEach(k => keywords.add(k))
-    Array.from(headingKeywords.keys()).forEach(k => keywords.add(k))
-    Array.from(contentKeywords.keys()).forEach(k => keywords.add(k))
-
-    const totalWords = this.tokenizer.tokenize(bodyText)?.length || 1
-
-    const results: KeywordMetrics[] = []
-
-    for (const keyword of keywords) {
-      // Skip single characters and common words
-      if (keyword.length < 2) continue
-
-      const count = contentKeywords.get(keyword) || 0
-      const usage: KeywordUsage = {
-        keyword,
-        count,
-        positions: {
-          title: Boolean(titleKeywords.get(keyword)),
-          description: Boolean(descriptionKeywords.get(keyword)),
-          headings: Boolean(headingKeywords.get(keyword)),
-          content: count > 0
-        },
-        density: this.calculateDensity(count, totalWords)
+      if (i < words.length - 2) {
+        phrases.push(`${words[i]} ${words[i + 1]} ${words[i + 2]}`) // Three words
       }
-
-      // Get competitor data for main keywords
-      let competitors: CompetitorData[] = []
-      if (usage.positions.title || usage.positions.headings || usage.density > 1) {
-        competitors = await this.getCompetitorData(keyword)
-      }
-
-      // Get related keywords from Google
-      const suggestions = usage.density > 0.5 
-        ? await this.fetchKeywordSuggestions(keyword) 
-        : []
-
-      results.push({
-        keyword,
-        usage,
-        competition: {
-          difficulty: this.calculateDifficulty(competitors, keyword),
-          competitorCount: competitors.length,
-          topCompetitors: competitors.slice(0, 5)
-        },
-        suggestions: [
-          ...suggestions.map(s => ({
-            keyword: s,
-            source: 'google' as const
-          }))
-        ]
-      })
     }
 
-    // Sort by relevance (density * position importance)
-    return results.sort((a, b) => {
-      const scoreA = a.usage.density * 
-        ((a.usage.positions.title ? 4 : 0) + 
-         (a.usage.positions.headings ? 2 : 0) + 
-         (a.usage.positions.description ? 1 : 0))
-      const scoreB = b.usage.density * 
-        ((b.usage.positions.title ? 4 : 0) + 
-         (b.usage.positions.headings ? 2 : 0) + 
-         (b.usage.positions.description ? 1 : 0))
-      return scoreB - scoreA
+    return [...new Set(phrases)] // Remove duplicates
+  }
+
+  private async enrichKeywordData(keywords: string[]): Promise<KeywordData[]> {
+    // In production, integrate with keyword research API
+    return keywords.map(keyword => ({
+      keyword,
+      searchVolume: Math.floor(Math.random() * 10000), // Mock data
+      difficulty: Math.floor(Math.random() * 100),
+      intent: this.determineKeywordIntent(keyword),
+      priority: 0, // Will be calculated later
+      currentRank: undefined // Use undefined instead of null
+    }))
+  }
+
+  private determineKeywordIntent(keyword: string): KeywordIntent {
+    const informationalWords = ['what', 'how', 'why', 'guide', 'tutorial']
+    const transactionalWords = ['buy', 'price', 'cost', 'shop', 'purchase']
+
+    keyword = keyword.toLowerCase()
+
+    if (informationalWords.some(word => keyword.includes(word))) {
+      return KeywordIntent.INFORMATIONAL
+    }
+    if (transactionalWords.some(word => keyword.includes(word))) {
+      return KeywordIntent.TRANSACTIONAL
+    }
+    
+    return KeywordIntent.NAVIGATIONAL
+  }
+
+  private async getCompetitorKeywords(): Promise<KeywordData[]> {
+    try {
+      const competitorKeywords: KeywordData[] = []
+
+      for (const competitorUrl of this.competitors) {
+        // In production, use a web scraper or SEO API to get competitor keywords
+        const mockKeywords = [
+          `${competitorUrl} keyword 1`,
+          `${competitorUrl} keyword 2`,
+          `${competitorUrl} keyword 3`
+        ]
+        
+        const keywordsWithMetrics = await this.enrichKeywordData(mockKeywords)
+        competitorKeywords.push(...keywordsWithMetrics)
+      }
+
+      return competitorKeywords
+    } catch (error) {
+      console.error('Error getting competitor keywords:', error)
+      return []
+    }
+  }
+
+  private async generateKeywordSuggestions(currentKeywords: KeywordData[]): Promise<KeywordData[]> {
+    try {
+      const suggestions: string[] = []
+
+      // Generate variations of current keywords
+      for (const { keyword } of currentKeywords) {
+        suggestions.push(
+          `best ${keyword}`,
+          `${keyword} guide`,
+          `how to ${keyword}`,
+          `${keyword} tutorial`,
+          `${keyword} tips`
+        )
+      }
+
+      // In production, use keyword suggestion API
+      return this.enrichKeywordData([...new Set(suggestions)])
+    } catch (error) {
+      console.error('Error generating keyword suggestions:', error)
+      return []
+    }
+  }
+
+  private deduplicateKeywords(keywords: KeywordData[]): KeywordData[] {
+    const seen = new Set<string>()
+    return keywords.filter(kw => {
+      if (seen.has(kw.keyword.toLowerCase())) {
+        return false
+      }
+      seen.add(kw.keyword.toLowerCase())
+      return true
     })
+  }
+
+  private filterNewKeywords(newKeywords: KeywordData[], currentKeywords: KeywordData[]): KeywordData[] {
+    const currentSet = new Set(currentKeywords.map(kw => kw.keyword.toLowerCase()))
+    return newKeywords.filter(kw => !currentSet.has(kw.keyword.toLowerCase()))
+  }
+
+  private performGapAnalysis(allKeywords: KeywordData[], currentKeywords: KeywordData[]) {
+    const currentSet = new Set(currentKeywords.map(kw => kw.keyword.toLowerCase()))
+    const missingKeywords = allKeywords.filter(kw => !currentSet.has(kw.keyword.toLowerCase()))
+
+    return {
+      missingHighValue: missingKeywords
+        .filter(kw => (kw.searchVolume || 0) > 1000 && (kw.difficulty || 0) < 50)
+        .slice(0, 10),
+      competitorStrengths: missingKeywords
+        .filter(kw => kw.searchVolume && kw.searchVolume > 5000)
+        .slice(0, 10),
+      quickWins: missingKeywords
+        .filter(kw => (kw.difficulty || 0) < 30 && (kw.searchVolume || 0) > 100)
+        .slice(0, 10)
+    }
+  }
+
+  private calculateStatistics(keywords: KeywordData[]) {
+    const stats = {
+      byIntent: Object.values(KeywordIntent).reduce((acc, intent) => {
+        acc[intent] = 0
+        return acc
+      }, {} as { [key in KeywordIntent]: number }),
+      avgDifficulty: 0,
+      avgSearchVolume: 0
+    }
+
+    if (keywords.length === 0) return stats
+
+    let totalDifficulty = 0
+    let totalSearchVolume = 0
+    let difficultyCount = 0
+    let searchVolumeCount = 0
+
+    for (const kw of keywords) {
+      if (kw.intent) {
+        stats.byIntent[kw.intent]++
+      }
+      if (typeof kw.difficulty === 'number') {
+        totalDifficulty += kw.difficulty
+        difficultyCount++
+      }
+      if (typeof kw.searchVolume === 'number') {
+        totalSearchVolume += kw.searchVolume
+        searchVolumeCount++
+      }
+    }
+
+    stats.avgDifficulty = difficultyCount > 0 ? totalDifficulty / difficultyCount : 0
+    stats.avgSearchVolume = searchVolumeCount > 0 ? totalSearchVolume / searchVolumeCount : 0
+
+    return stats
+  }
+
+  private findTopOpportunities(allKeywords: KeywordData[], currentKeywords: KeywordData[]): KeywordData[] {
+    const currentSet = new Set(currentKeywords.map(kw => kw.keyword.toLowerCase()))
+    return allKeywords
+      .filter(kw => !currentSet.has(kw.keyword.toLowerCase()))
+      .sort((a, b) => {
+        const scoreA = calculatePriorityScore(this.toKeywordScoreInput(a))
+        const scoreB = calculatePriorityScore(this.toKeywordScoreInput(b))
+        return scoreB - scoreA
+      })
+      .slice(0, 10)
   }
 }

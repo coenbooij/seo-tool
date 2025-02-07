@@ -4,27 +4,34 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import ProjectForm from '@/components/projects/project-form'
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
 interface Project {
-  id: number
+  id: string // Changed from number to string since we're using CUID
   name: string
-  domain: string
-  googleProperty?: string
+  url: string
   createdAt: string
 }
 
 export default function ProjectsPage() {
   const [showForm, setShowForm] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string>('')
+  
+  const fetcher = async (url: string) => {
+    const res = await fetch(url)
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || 'Failed to fetch projects')
+    }
+    return res.json()
+  }
+
   const { data: projects, error, mutate } = useSWR<Project[]>('/api/projects', fetcher)
 
-  const handleCreateProject = async (projectData: { 
+  const handleCreateProject = async (projectData: {
     name: string
-    domain: string
-    googleProperty?: string 
+    url: string
   }) => {
     try {
-      console.log('Creating project:', projectData)
+      setErrorMessage('')
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: {
@@ -43,13 +50,17 @@ export default function ProjectsPage() {
       setShowForm(false)
     } catch (error) {
       console.error('Error creating project:', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to create project')
     }
   }
 
   if (error) {
     return (
-      <div className="text-red-600">
-        Failed to load projects. Please try again later.
+      <div className="p-4 rounded-md bg-red-50 border border-red-200">
+        <h3 className="text-sm font-medium text-red-800">Error loading projects</h3>
+        <div className="mt-2 text-sm text-red-700">
+          {error.message || 'Failed to load projects. Please try again later.'}
+        </div>
       </div>
     )
   }
@@ -60,7 +71,10 @@ export default function ProjectsPage() {
         <h1 className="text-2xl font-semibold text-gray-900">Projects</h1>
         {!showForm && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setShowForm(true)
+              setErrorMessage('')
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Add Project
@@ -68,11 +82,20 @@ export default function ProjectsPage() {
         )}
       </div>
 
+      {errorMessage && (
+        <div className="mb-4 p-4 rounded-md bg-red-50 border border-red-200">
+          <div className="text-sm text-red-700">{errorMessage}</div>
+        </div>
+      )}
+
       {showForm ? (
         <div className="bg-white shadow sm:rounded-lg p-6 mb-6">
           <ProjectForm
             onSubmit={handleCreateProject}
-            onCancel={() => setShowForm(false)}
+            onCancel={() => {
+              setShowForm(false)
+              setErrorMessage('')
+            }}
           />
         </div>
       ) : null}
@@ -92,18 +115,13 @@ export default function ProjectsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-medium text-indigo-600">
-                      <a href={`/dashboard/projects/${project.id}`}>
-                        {project.name}
-                      </a>
+                        <a href={`/dashboard/projects/${project.id}`}>
+                          {project.name}
+                        </a>
                       </h3>
                       <p className="mt-1 text-sm text-gray-500">
-                        {project.domain}
+                        {project.url}
                       </p>
-                      {project.googleProperty && (
-                        <p className="mt-1 text-xs text-gray-400">
-                          GA Property: {project.googleProperty}
-                        </p>
-                      )}
                     </div>
                     <div className="ml-2 flex-shrink-0 flex">
                       <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">

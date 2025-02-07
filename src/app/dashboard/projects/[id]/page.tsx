@@ -9,12 +9,13 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 interface ProjectMetrics {
   keywords: {
     total: number
-    topThree: number
-    change: number
+    averageRank: number
+    averageVolume: number
+    averageDifficulty: number
   }
   backlinks: {
     total: number
-    newLinks: number
+    averageAuthority: number
     change: number
   }
   content: {
@@ -43,36 +44,45 @@ export default function ProjectOverview() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <TrendCard
-          title="Keyword Rankings"
-          value={metrics.keywords.total}
-          change={metrics.keywords.change}
-          changeTimeframe="last month"
-          trend={metrics.keywords.change >= 0 ? 'up' : 'down'}
-        />
-        <TrendCard
-          title="Total Backlinks"
-          value={metrics.backlinks.total}
-          change={metrics.backlinks.change}
-          changeTimeframe="last month"
-          trend={metrics.backlinks.change >= 0 ? 'up' : 'down'}
-        />
-        <TrendCard
-          title="Content Score"
-          value={`${metrics.content.avgScore}/100`}
-          change={metrics.content.change}
-          changeTimeframe="last month"
-          trend={metrics.content.change >= 0 ? 'up' : 'down'}
-          format="text"
-        />
-        <TrendCard
-          title="Technical Score"
-          value={`${metrics.technical.score}/100`}
-          change={metrics.technical.change}
-          changeTimeframe="last month"
-          trend={metrics.technical.change >= 0 ? 'up' : 'down'}
-          format="text"
-        />
+        {metrics.keywords && (
+          <TrendCard
+            title="Avg Keyword Rank"
+            value={metrics.keywords.averageRank || 0}
+            change={metrics.keywords.averageDifficulty || 0}
+            changeTimeframe="last month"
+            trend={(metrics.keywords.averageDifficulty || 0) <= (metrics.keywords.averageRank || 0) ? 'up' : 'down'}
+            format="numeric"
+          />
+        )}
+        {metrics.backlinks && (
+          <TrendCard
+            title="Total Backlinks"
+            value={metrics.backlinks.total ?? 0}
+            change={metrics.backlinks.change ?? 0}
+            changeTimeframe="last month"
+            trend={(metrics.backlinks.change ?? 0) >= 0 ? 'up' : 'down'}
+          />
+        )}
+        {metrics.content && (
+          <TrendCard
+            title="Content Score"
+            value={`${metrics.content.avgScore}/100`}
+            change={metrics.content.change}
+            changeTimeframe="last month"
+            trend={metrics.content.change >= 0 ? 'up' : 'down'}
+            format="percentage"
+          />
+        )}
+        {metrics.technical && (
+          <TrendCard
+            title="Technical Score"
+            value={`${metrics.technical.score}/100`}
+            change={metrics.technical.change}
+            changeTimeframe="last month"
+            trend={metrics.technical.change >= 0 ? 'up' : 'down'}
+            format="percentage"
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

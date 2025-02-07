@@ -1,17 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-      allowedOrigins: ['*']
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Client-side: ignore Node.js-specific modules
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+        'pg-native': false,
+        child_process: false,
+      };
     }
+    return config;
   },
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: false,
-  }
 }
 
 module.exports = nextConfig

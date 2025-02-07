@@ -5,7 +5,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,16 +14,13 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Parse params.id here since it's from the URL
-    const projectId = parseInt(params.id)
-    if (isNaN(projectId)) {
-      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
-    }
+    const params = await context.params
+    const { id } = params
 
     const project = await prisma.project.findFirst({
       where: {
-        id: projectId,
-        userId: parseInt(session.user.id)
+        id,
+        userId: String(session.user.id)
       }
     })
 
@@ -36,6 +33,93 @@ export async function GET(
     console.error('Error fetching project:', error)
     return NextResponse.json(
       { error: 'Failed to fetch project' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const params = await context.params
+    const { id } = params
+    const data = await request.json()
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        userId: String(session.user.id)
+      }
+    })
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: {
+        id
+      },
+      data: {
+        name: data.name?.trim() || project.name,
+        domain: data.domain?.trim()?.toLowerCase() || project.domain
+      }
+    })
+
+    return NextResponse.json(updatedProject)
+  } catch (error) {
+    console.error('Error updating project:', error)
+    return NextResponse.json(
+      { error: 'Failed to update project' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const params = await context.params
+    const { id } = params
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        userId: String(session.user.id)
+      }
+    })
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    await prisma.project.delete({
+      where: {
+        id
+      }
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting project:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete project' },
       { status: 500 }
     )
   }

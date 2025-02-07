@@ -5,7 +5,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,16 +14,13 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Parse params.id here since it's from the URL
-    const projectId = parseInt(params.id)
-    if (isNaN(projectId)) {
-      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
-    }
+    const params = await context.params
+    const { id } = params
 
     const project = await prisma.project.findFirst({
       where: {
-        id: projectId,
-        userId: parseInt(session.user.id)
+        id,
+        userId: String(session.user.id)
       }
     })
 
@@ -31,59 +28,50 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    // For now, return placeholder analytics data
+    // Mock analytics data that matches the Analytics interface
     const analytics = {
-      traffic: {
-        total: 125000,
-        organic: 85000,
-        direct: 25000,
-        referral: 15000,
-        change: 12.5
-      },
-      engagement: {
-        avgTimeOnPage: '2:45',
-        bounceRate: 45.2,
-        pagesPerSession: 2.8,
-        change: 3.2
-      },
-      conversions: {
-        total: 2500,
-        rate: 2.0,
-        goals: {
-          newsletter: 1200,
-          contact: 800,
-          purchase: 500
-        },
-        change: 5.8
-      },
+      users: 125000,
+      usersChange: 12.5,
+      pageViews: 350000,
+      pageViewsChange: 8.3,
+      avgSessionDuration: 165, // in seconds
+      avgSessionDurationChange: 5.2,
+      bounceRate: 45.2,
+      bounceRateChange: -2.1,
       topPages: [
         {
-          url: '/blog/seo-guide',
-          views: 15000,
-          conversions: 300
+          path: '/blog/seo-guide',
+          pageViews: 15000,
+          change: 12.3
         },
         {
-          url: '/services',
-          views: 12000,
-          conversions: 250
+          path: '/services',
+          pageViews: 12000,
+          change: 8.7
         },
         {
-          url: '/about',
-          views: 8000,
-          conversions: 150
+          path: '/about',
+          pageViews: 8000,
+          change: 5.4
         }
       ],
-      timeline: {
-        daily: [
-          { date: '2024-01-24', visits: 4200, conversions: 84 },
-          { date: '2024-01-25', visits: 4500, conversions: 90 },
-          { date: '2024-01-26', visits: 4100, conversions: 82 },
-          { date: '2024-01-27', visits: 3900, conversions: 78 },
-          { date: '2024-01-28', visits: 4300, conversions: 86 },
-          { date: '2024-01-29', visits: 4600, conversions: 92 },
-          { date: '2024-01-30', visits: 4800, conversions: 96 }
-        ]
-      }
+      trafficSources: [
+        {
+          source: 'Organic Search',
+          users: 85000,
+          change: 15.2
+        },
+        {
+          source: 'Direct',
+          users: 25000,
+          change: 5.8
+        },
+        {
+          source: 'Referral',
+          users: 15000,
+          change: 8.9
+        }
+      ]
     }
 
     return NextResponse.json(analytics)
