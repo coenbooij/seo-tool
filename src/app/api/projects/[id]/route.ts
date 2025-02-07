@@ -122,9 +122,9 @@ export async function PATCH(
         ...(data.name && { name: data.name.trim() }),
         ...(data.url && { url: data.url.trim() }),
         ...(data.domain && { domain: data.domain.trim().toLowerCase() }),
-        sitemapUrl: data.sitemapUrl?.trim() || null,
-        gaPropertyId: data.gaPropertyId?.trim() || null,
-        gscVerifiedSite: data.gscVerifiedSite?.trim() || null
+        ...(data.sitemapUrl && { sitemapUrl: data.sitemapUrl.trim() || null }),
+        ...(data.gaPropertyId && { gaPropertyId: data.gaPropertyId.trim() || null }),
+        ...(data.gscVerifiedSite && { gscVerifiedSite: data.gscVerifiedSite.trim() || null })
       }
     })
 

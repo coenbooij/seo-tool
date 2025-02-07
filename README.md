@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SEO Tool
 
-## Getting Started
+A comprehensive SEO analytics and optimization platform built with Next.js. Monitor and improve your website's SEO performance through advanced keyword analysis, technical SEO audits, backlink tracking, and integration with Google services.
 
-First, run the development server:
+## Features
 
+- **Dashboard Overview**: Centralized view of SEO metrics and performance indicators
+- **Project Management**: Organize and track multiple websites/projects
+- **Keyword Analysis**:
+  - Keyword discovery and research
+  - Competitor gap analysis
+  - Keyword grouping and organization
+  - Priority scoring
+  - Performance tracking
+- **Technical SEO**:
+  - Performance analysis
+  - Mobile optimization checks
+  - Security audit
+  - Technical issues scanning
+- **Content Analysis**: Evaluate and optimize website content
+- **Backlink Analysis**: Track and analyze backlink profile
+- **Analytics Integration**: 
+  - Google Analytics data integration
+  - Google Search Console metrics
+- **Authentication**: Secure user authentication system
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with TypeScript
+- **UI**: React 18 with Tailwind CSS
+- **Authentication**: NextAuth.js
+- **Database**: Prisma ORM
+- **State Management**: Zustand
+- **Data Fetching**: SWR
+- **UI Components**: 
+  - Radix UI
+  - TanStack Table
+  - Heroicons
+- **Analytics**: Google Analytics Data API
+- **Natural Language Processing**: Natural.js
+- **HTTP Client**: Axios
+
+## Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [repository-url]
+cd seo-tool
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up your environment variables in `.env`:
+```env
+# Database
+DATABASE_URL="your-database-url"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Authentication
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret"
 
-## Learn More
+# Google APIs
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. Initialize the database:
+```bash
+npx prisma migrate dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run the development server with Turbopack:
+```bash
+npm run dev
+```
 
-## Deploy on Vercel
+Other available commands:
+```bash
+npm run build    # Create production build
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/                    # Next.js 15 app directory
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   └── dashboard/         # Dashboard pages and features
+├── components/            # Reusable React components
+│   ├── dashboard/         # Dashboard-specific components
+│   ├── navigation/        # Navigation components
+│   ├── projects/         # Project management components
+│   └── ui/               # UI components
+├── lib/                  # Utility functions and shared logic
+├── providers/           # React context providers
+├── services/           # Service layer
+│   └── seo/            # SEO analysis services
+└── types/              # TypeScript type definitions
+```
+
+## Authentication Setup
+
+1. Create a Google Cloud Project
+2. Enable the necessary APIs:
+   - Google Analytics Data API
+   - Google Search Console API
+3. Create OAuth 2.0 credentials
+4. Add authorized redirect URIs in the Google Cloud Console
+5. Copy the client ID and secret to your `.env` file
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a pull request
+
+## License
+
+This project is private and proprietary software.
