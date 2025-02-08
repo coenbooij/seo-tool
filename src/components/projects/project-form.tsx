@@ -17,18 +17,24 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
     setError('')
 
     const trimmedName = name.trim()
-    const trimmedUrl = url.trim()
+    const trimmedUrl = url.trim();
 
     if (!trimmedName || !trimmedUrl) {
-      setError('Name and URL are required')
-      return
+      setError('Name and URL are required');
+      return;
+    }
+
+    // Add https:// if missing
+    let finalUrl = trimmedUrl;
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://' + finalUrl;
     }
 
     try {
       onSubmit({
         name: trimmedName,
-        url: trimmedUrl
-      })
+        url: finalUrl,
+      });
     } catch (error) {
       setError('Failed to create project')
       console.error('Form submission error:', error)

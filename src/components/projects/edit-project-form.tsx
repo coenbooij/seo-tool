@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { ReloadIcon } from '@radix-ui/react-icons'
-import useSWR from 'swr';
+import { useSession } from 'next-auth/react'; // Import useSession
 
 interface Project {
   id: string
@@ -32,9 +32,6 @@ interface EditProjectFormProps {
   project: Project
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
-
 export default function EditProjectForm({ project }: EditProjectFormProps) {
   const [name, setName] = useState(project.name)
   const [url, setUrl] = useState(project.url)
@@ -46,10 +43,11 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
   const [gaProperties, setGaProperties] = useState<GAProperty[]>([])
     const [isLoadingSites, setIsLoadingSites] = useState(true);
     const [gscSites, setGscSites] = useState<GSCVerifiedSite[]>([]);
-  const { toast } = useToast()
-
-    // Fetch GA properties when component mounts
-    useEffect(() => {
+    const { toast } = useToast();
+    const { status } = useSession(); // Use useSession hook
+  
+      // Fetch GA properties when component mounts
+      useEffect(() => {
       const fetchGAProperties = async () => {
         try {
           const response = await fetch('/api/analytics/properties');
@@ -96,8 +94,10 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
             }
         }
 
-        fetchGscSites();
-    }, []);
+        if (status === 'authenticated') { // Only fetch if authenticated
+            fetchGscSites();
+        }
+    }, [status, toast]); // Add status as a dependency
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -230,30 +230,7 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
                 ))}
               </select>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsLoadingProperties(true);
-                fetch('/api/analytics/properties')
-                  .then(res => res.json())
-                  .then(properties => {
-                    setGaProperties(properties);
-                    toast({ description: "Properties refreshed" });
-                  })
-                  .catch(() => {
-                    toast({
-                      description: "Failed to refresh properties",
-                      variant: "destructive"
-                    });
-                  })
-                  .finally(() => setIsLoadingProperties(false));
-              }}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              disabled={isLoadingProperties}
-              aria-label="Refresh Google Analytics properties"
-            >
-              <ReloadIcon className={`h-4 w-4 ${isLoadingProperties ? 'animate-spin' : ''}`} />
-            </button>
+            
           </div>
           <p className="mt-1 text-sm text-gray-500" id="gaPropertyId-description">
             Select your Google Analytics 4 property

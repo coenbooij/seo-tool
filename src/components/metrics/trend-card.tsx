@@ -7,28 +7,30 @@ interface TrendCardProps {
   title: string
   value: string | number
   change: number | undefined
-  changeTimeframe: string
-  trend: 'up' | 'down'
+  changeTimeframe?: string
+  trend?: 'up' | 'down'
   format?: 'numeric' | 'percentage' | 'currency' | 'compact'
   loading?: boolean
   tooltip?: string
   className?: string
   footer?: React.ReactNode
-  invertColors?: boolean // New prop to invert color scheme for metrics where increase is bad
+  invertColors?: boolean // For metrics where increase is bad
+  valuePrefix?: string // For adding a prefix to the value
 }
 
 export default function TrendCard({
   title,
   value,
   change,
-  changeTimeframe,
-  trend,
+  changeTimeframe = "vs last period",
+  trend = 'up',
   format = 'numeric',
   loading = false,
   tooltip,
   className = '',
   footer,
   invertColors = false,
+  valuePrefix = '',
 }: TrendCardProps) {
   const isPositive = trend === 'up'
   const changeText = change !== undefined ? `${isPositive ? '+' : ''}${Math.round(change)}%` : '--'
@@ -37,22 +39,28 @@ export default function TrendCard({
     const num = Number(val)
     if (isNaN(num)) return val
 
+    let formattedValue = ''
     switch (format) {
       case 'percentage':
-        return `${num.toLocaleString()}%`
+        formattedValue = `${num.toLocaleString()}%`
+        break
       case 'currency':
-        return new Intl.NumberFormat('en-US', {
+        formattedValue = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD'
         }).format(num)
+        break
       case 'compact':
-        return new Intl.NumberFormat('en-US', {
+        formattedValue = new Intl.NumberFormat('en-US', {
           notation: 'compact',
           maximumFractionDigits: 1
         }).format(num)
+        break
       default:
-        return num.toLocaleString()
+        formattedValue = num.toLocaleString()
     }
+
+    return valuePrefix ? `${valuePrefix}${formattedValue}` : formattedValue
   }
 
   // Determine color scheme based on trend and invertColors prop
@@ -83,7 +91,7 @@ export default function TrendCard({
   }
 
   return (
-    <div className={`bg-white overflow-hidden rounded-lg shadow ${className}`}>
+    <div className={`relative bg-white overflow-visible rounded-lg shadow ${className}`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-1">
@@ -92,10 +100,12 @@ export default function TrendCard({
                 {title}
               </h3>
               {tooltip && (
-                <div className="ml-2 group relative">
-                  <InformationCircleIcon className="h-5 w-5 text-gray-400" />
-                  <div className="hidden group-hover:block absolute z-10 w-64 p-2 text-sm bg-gray-900 text-white rounded-md -left-1/2 transform -translate-x-1/2 mt-1">
+                <div className="ml-2 relative group">
+                  <InformationCircleIcon className="h-5 w-5 text-gray-400 cursor-help" />
+                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2 text-sm bg-gray-900 text-white rounded-md shadow-lg z-50">
                     {tooltip}
+                    {/* Arrow */}
+                    <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45"></div>
                   </div>
                 </div>
               )}
@@ -117,9 +127,11 @@ export default function TrendCard({
                   ) : null}
                   {changeText}
                 </span>
-                <span className="ml-1 text-sm text-gray-500">
-                  {changeTimeframe}
-                </span>
+                {changeTimeframe && (
+                  <span className="ml-1 text-sm text-gray-500">
+                    {changeTimeframe}
+                  </span>
+                )}
               </div>
             </div>
           </div>

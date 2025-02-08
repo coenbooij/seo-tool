@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import GoogleAnalyticsService, { TimeSpan } from '@/services/seo/google-analytics-service';
+import GoogleSearchConsoleService, { GSCData } from '@/services/seo/google-search-console-service';
 import { google } from 'googleapis';
 
 // Simplified interfaces to match AnalyticsData
@@ -18,6 +19,7 @@ interface TrafficSource {
   change: number;
 }
 
+// Updated interface with GSC data
 interface Analytics {
   users: number;
   usersChange: number;
@@ -29,7 +31,36 @@ interface Analytics {
   bounceRateChange: number;
   topPages: PageAnalytics[];
   trafficSources: TrafficSource[];
+  gscData?: GSCData;
 }
+
+// Helper function to parse timespan into days
+const timespanToDays = (timespan: TimeSpan): number => {
+  switch (timespan) {
+    case '7d': return 7;
+    case '30d': return 30;
+    case '90d': return 90;
+    case '180d': return 180;
+    case '365d': return 365;
+    default: return 30;
+  }
+};
+
+// Helper function to get date range
+const getDateRange = (days: number): { startDate: string; endDate: string } => {
+  const now = new Date();
+  // GSC data has a 3-day delay, so we offset the end date
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() - 3);
+  
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - days);
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+  };
+};
 
 export async function GET(
   request: Request,
@@ -95,6 +126,24 @@ export async function GET(
     const gaService = new GoogleAnalyticsService(oauth2Client, project.gaPropertyId);
     const gaData = await gaService.getAnalytics(timespan);
 
+    // Fetch GSC data
+    const gscService = new GoogleSearchConsoleService(oauth2Client);
+    const days = timespanToDays(timespan);
+    const { startDate, endDate } = getDateRange(days);
+
+    console.log('Fetching GSC data:', {
+      site: project.gscVerifiedSite,
+      startDate,
+      endDate,
+      days
+    });
+
+    const gscData = await gscService.getAggregatedData(
+      project.gscVerifiedSite, 
+      startDate,
+      endDate
+    );
+
     if (!gaData) {
       console.error('Failed to get analytics data');
       return NextResponse.json(
@@ -103,7 +152,7 @@ export async function GET(
       );
     }
 
-    // Check if gaData is defined, and provide defaults if not
+    // Use the new GSCData interface and simplify the structure
     const safeGaData: Analytics = {
       users: gaData.users ?? 0,
       usersChange: gaData.usersChange ?? 0,
@@ -115,6 +164,7 @@ export async function GET(
       bounceRateChange: gaData.bounceRateChange ?? 0,
       topPages: gaData.topPages ?? [],
       trafficSources: gaData.trafficSources ?? [],
+      gscData: gscData
     };
 
     return NextResponse.json(safeGaData);

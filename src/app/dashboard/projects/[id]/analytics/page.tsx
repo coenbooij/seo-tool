@@ -10,6 +10,7 @@ import TrendCard from '@/components/metrics/trend-card'
 import Link from 'next/link'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { TimeSpan } from '@/services/seo/google-analytics-service'
+import type { GSCData } from '@/services/seo/google-search-console-service'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -39,6 +40,7 @@ interface Analytics {
   message?: string;
   gaPropertyId?: string;
   gscVerifiedSite?: string;
+  gscData?: GSCData;
 }
 
 const timespanOptions: { value: TimeSpan; label: string }[] = [
@@ -138,42 +140,99 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <TrendCard
-          title="Users"
-          value={analytics.users}
-          change={analytics.usersChange}
-          changeTimeframe="vs last period"
-          trend={analytics.usersChange >= 0 ? "up" : "down"}
-          format="numeric"
-        />
-        <TrendCard
-          title="Page Views"
-          value={analytics.pageViews}
-          change={analytics.pageViewsChange}
-          changeTimeframe="vs last period"
-          trend={analytics.pageViewsChange >= 0 ? "up" : "down"}
-          format="numeric"
-        />
-        <TrendCard
-          title="Avg. Session Duration"
-          value={analytics.avgSessionDuration ? Math.round(analytics.avgSessionDuration * 10) / 10 + ' s': 0}
-          change={analytics.avgSessionDurationChange}
-          changeTimeframe="vs last period"
-          trend={analytics.avgSessionDurationChange >= 0 ? "up" : "down"}
-          format="numeric"
-        />
-        <TrendCard
-          title="Bounce Rate"
-          value={analytics.bounceRate}
-          change={analytics.bounceRateChange}
-          changeTimeframe="vs last period"
-          trend={analytics.bounceRateChange >= 0 ? "up" : "down"} // Keep actual direction
-          invertColors={true} // Invert colors since an increase in bounce rate is bad
-          format="percentage"
-        />
+      {/* Google Analytics Overview */}
+      <div>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">User Behavior</h2>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <TrendCard
+            title="Users"
+            value={analytics.users}
+            change={analytics.usersChange}
+            changeTimeframe="vs last period"
+            trend={analytics.usersChange >= 0 ? "up" : "down"}
+            format="numeric"
+            tooltip="Number of unique visitors over the selected period."
+          />
+          <TrendCard
+            title="Page Views"
+            value={analytics.pageViews}
+            change={analytics.pageViewsChange}
+            changeTimeframe="vs last period"
+            trend={analytics.pageViewsChange >= 0 ? "up" : "down"}
+            format="numeric"
+            tooltip="Total number of pages viewed during the selected period."
+          />
+          <TrendCard
+            title="Avg. Session Duration"
+            value={analytics.avgSessionDuration ? Math.round(analytics.avgSessionDuration * 10) / 10 + ' s': 0}
+            change={analytics.avgSessionDurationChange}
+            changeTimeframe="vs last period"
+            trend={analytics.avgSessionDurationChange >= 0 ? "up" : "down"}
+            format="numeric"
+            tooltip="Average length of user sessions in seconds."
+          />
+          <TrendCard
+            title="Bounce Rate"
+            value={Math.round(analytics.bounceRate * 10) / 10}
+            change={analytics.bounceRateChange}
+            changeTimeframe="vs last period"
+            trend={analytics.bounceRateChange >= 0 ? "up" : "down"}
+            invertColors={true}
+            format="percentage"
+            tooltip="Percentage of sessions in which users left without taking further action."
+          />
+        </div>
       </div>
+
+      {/* Search Performance */}
+      {analytics.gscData && (
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Search Performance</h2>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <TrendCard
+              title="Search Clicks"
+              value={analytics.gscData.clicks}
+              change={analytics.gscData.clicksChange}
+              changeTimeframe="vs last period"
+              trend={analytics.gscData.clicksChange >= 0 ? "up" : "down"}
+              format="numeric"
+              tooltip="Total number of times users clicked through to your site from Google search results"
+            />
+            <TrendCard
+              title="Search Impressions"
+              value={analytics.gscData.impressions}
+              change={analytics.gscData.impressionsChange}
+              changeTimeframe="vs last period"
+              trend={analytics.gscData.impressionsChange >= 0 ? "up" : "down"}
+              format="numeric"
+              tooltip="Total number of times your site appeared in Google search results"
+            />
+            <TrendCard
+              title="Search CTR"
+              value={Math.round(analytics.gscData.ctr * 1000) / 10}
+              change={analytics.gscData.ctrChange}
+              changeTimeframe="vs last period"
+              trend={analytics.gscData.ctrChange >= 0 ? "up" : "down"}
+              format="percentage"
+              tooltip="Click-through rate: clicks divided by impressions"
+            />
+            <TrendCard
+              title="Avg. Position"
+              value={Math.round(analytics.gscData.position * 10) / 10}
+              change={analytics.gscData.positionChange 
+                ? Math.round((analytics.gscData.positionChange) * -100) / 100
+                : 0
+              }
+              changeTimeframe="vs last period"
+              trend={analytics.gscData.positionChange <= 0 ? "up" : "down"}
+              invertColors={true}
+              format="numeric"
+              valuePrefix="#"
+              tooltip="Average ranking position in Google search results. A lower number is better!"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Top Pages */}
       <Card className="p-6">

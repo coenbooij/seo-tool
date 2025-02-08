@@ -32,7 +32,6 @@ export default class GoogleAnalyticsService {
 
   constructor(auth: OAuth2Client, propertyId: string) {
     this.analytics = google.analyticsdata({ version: 'v1beta', auth });
-    // propertyId is already in the format "properties/12345" from properties dropdown
     this.propertyId = propertyId;
   }
 
@@ -64,6 +63,82 @@ export default class GoogleAnalyticsService {
   private calculateChange(current: number, previous: number): number {
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / previous) * 100;
+  }
+
+  private formatTrafficSource(source: string | undefined | null, medium: string | undefined | null): string {
+    if (!source || source === '(not set)') {
+      if (!medium || medium === '(none)' || medium === '(not set)') {
+        return 'Direct';
+      }
+      return this.formatMedium(medium);
+    }
+
+    source = source.toLowerCase();
+
+    // Handle search engines
+    if (source === 'google' && medium === 'organic') return 'Organic Search';
+    if (source === 'bing' && medium === 'organic') return 'Organic Search';
+    if (source === 'yahoo' && medium === 'organic') return 'Organic Search';
+    if (source === 'duckduckgo' && medium === 'organic') return 'Organic Search';
+
+    // Handle direct traffic
+    if (source === '(direct)') return 'Direct';
+
+    // Handle social media
+    if (this.isSocialMedia(source)) {
+      return this.formatSocialSource(source);
+    }
+
+    // Format source name
+    const formattedSource = source
+      .split('.')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('.');
+
+    // Add medium context for non-standard sources if it adds value
+    const formattedMedium = this.formatMedium(medium);
+    if (formattedMedium && formattedMedium !== 'Referral') {
+      return `${formattedSource} (${formattedMedium})`;
+    }
+
+    return formattedSource;
+  }
+
+  private formatMedium(medium: string | undefined | null): string {
+    if (!medium || medium === '(not set)' || medium === '(none)') return '';
+    
+    switch (medium.toLowerCase()) {
+      case 'organic': return 'Organic';
+      case 'cpc': return 'Paid Search';
+      case 'social': return 'Social';
+      case 'email': return 'Email';
+      case 'referral': return 'Referral';
+      case 'affiliate': return 'Affiliate';
+      default: return medium.charAt(0).toUpperCase() + medium.slice(1);
+    }
+  }
+
+  private isSocialMedia(source: string): boolean {
+    const socialDomains = [
+      'facebook',
+      'instagram',
+      'twitter',
+      't.co',
+      'linkedin',
+      'pinterest',
+      'youtube'
+    ];
+    return socialDomains.some(domain => source.includes(domain));
+  }
+
+  private formatSocialSource(source: string): string {
+    if (source.includes('facebook') || source.includes('fb')) return 'Facebook';
+    if (source.includes('instagram')) return 'Instagram';
+    if (source.includes('twitter') || source === 't.co') return 'Twitter';
+    if (source.includes('linkedin')) return 'LinkedIn';
+    if (source.includes('pinterest')) return 'Pinterest';
+    if (source.includes('youtube')) return 'YouTube';
+    return 'Social Media';
   }
 
   async getAnalytics(timeSpan: TimeSpan = '30d'): Promise<AnalyticsData | null> {
@@ -109,12 +184,15 @@ export default class GoogleAnalyticsService {
             limit: '10',
           },
         }),
-        // Traffic sources
+        // Traffic sources with session medium
         this.analytics.properties.runReport({
           property: this.propertyId,
           requestBody: {
             dateRanges: [dateRanges.current, dateRanges.previous],
-            dimensions: [{ name: 'sessionSource' }],
+            dimensions: [
+              { name: 'sessionSource' },
+              { name: 'sessionMedium' }
+            ],
             metrics: [{ name: 'activeUsers' }],
             orderBys: [
               {
@@ -122,16 +200,14 @@ export default class GoogleAnalyticsService {
                 desc: true,
               },
             ],
-            limit: '10',
+            limit: '25',
           },
         }),
       ]);
 
-      // Process main metrics - rows come in chronological order
       const currentMetrics = mainMetrics.data.rows?.[0]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
       const previousMetrics = mainMetrics.data.rows?.[1]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
 
-      // Process top pages - rows are paired (current, previous) for each path
       const pagesMap = new Map<string, { current: number; previous: number }>();
       topPages.data.rows?.forEach((row, index) => {
         const path = row.dimensionValues?.[0]?.value || '';
@@ -146,19 +222,21 @@ export default class GoogleAnalyticsService {
         pagesMap.set(path, existing);
       });
 
-      // Process traffic sources - rows are paired (current, previous) for each source
       const sourcesMap = new Map<string, { current: number; previous: number }>();
       trafficSources.data.rows?.forEach((row, index) => {
-        const source = row.dimensionValues?.[0]?.value || '';
+        const source = row.dimensionValues?.[0]?.value;
+        const medium = row.dimensionValues?.[1]?.value;
         const users = parseFloat(row.metricValues?.[0]?.value || '0');
-        const existing = sourcesMap.get(source) || { current: 0, previous: 0 };
+        
+        const sourceName = this.formatTrafficSource(source, medium);
+        const existing = sourcesMap.get(sourceName) || { current: 0, previous: 0 };
         
         if (index % 2 === 0) {
-          existing.current = users;
+          existing.current += users;
         } else {
-          existing.previous = users;
+          existing.previous += users;
         }
-        sourcesMap.set(source, existing);
+        sourcesMap.set(sourceName, existing);
       });
 
       return {
