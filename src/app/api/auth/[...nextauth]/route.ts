@@ -104,12 +104,6 @@ callbacks: {
         token.refreshToken = account.refresh_token;
         token.scope = account.scope;
       }
-      console.log('JWT token generated:', {
-        id: token.id,
-        sub: token.sub,
-        email: token.email,
-        hasAccessToken: !!token.accessToken
-      });
       return token;
     } catch (error) {
       console.error('JWT callback error:', error);
@@ -132,12 +126,6 @@ callbacks: {
       } else {
         throw new Error('No user ID in token');
       }
-      
-      console.log('Session created:', {
-        userId: session.user.id,
-        email: session.user.email,
-        hasAccessToken: !!session.accessToken
-      });
       return session;
     } catch (error) {
       console.error('Session callback error:', error);

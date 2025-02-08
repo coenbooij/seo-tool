@@ -20,10 +20,8 @@ interface ListPropertiesResponse {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  console.log('Session in /api/analytics/properties:', session);
 
   if (!session?.user?.id || !session.accessToken) {
-    console.log('Unauthorized: No session, user ID, or access token.');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -36,6 +34,15 @@ export async function GET() {
 
     oauth2Client.setCredentials({
       access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+      scope: 'https://www.googleapis.com/auth/analytics.readonly',
+    });
+
+    // Set up token refresh callback
+    oauth2Client.on('tokens', async (tokens) => {
+      if (tokens.refresh_token || tokens.access_token) {
+        // Handle token refresh silently
+      }
     });
 
     const analyticsAdmin = google.analyticsadmin({
@@ -43,18 +50,13 @@ export async function GET() {
       auth: oauth2Client,
     });
 
-    console.log('Fetching GA4 properties with:', oauth2Client.credentials);
-
     // First, fetch the list of accounts
     const accountsResponse = await analyticsAdmin.accountSummaries.list();
-
-    console.log('GA Account Summaries response:', accountsResponse);
 
     // Extract the account ID from the first account (assuming at least one exists)
     const accountId = accountsResponse.data.accountSummaries?.[0]?.account;
 
     if (!accountId) {
-      console.error('No accounts found for this user.');
       return NextResponse.json({ error: 'No Google Analytics accounts found' }, { status: 404 });
     }
 
@@ -64,32 +66,20 @@ export async function GET() {
       showDeleted: false,
     });
 
-    console.log('GA Management API response:', propertiesResponse);
-
-    // Log the full response structure for debugging
-    console.log('Full GA response:', JSON.stringify(propertiesResponse.data, null, 2));
-
     const properties = (propertiesResponse.data as ListPropertiesResponse).properties
-      ?.filter((property) => !property.name.startsWith('deleted:')) // Ensure property is not deleted
+      ?.filter((property) => !property.name.startsWith('deleted:'))
       .map((property) => ({
-        id: property.name, // The resource name, e.g., "properties/12345"
+        id: property.name,
         name: property.displayName,
-        websiteUrl: property.parent, // Not directly available, needs to be constructed or fetched later
-        accountId: accountId, // Use the retrieved account ID
-        accountName: accountsResponse.data.accountSummaries?.[0]?.displayName, // Use account display name
+        websiteUrl: property.parent,
+        accountId: accountId,
+        accountName: accountsResponse.data.accountSummaries?.[0]?.displayName,
       })) || [];
-
-    console.log('Extracted properties:', properties);
 
     return NextResponse.json(properties);
   } catch (error) {
-    console.error('Error fetching GA properties:', error);
     let errorMessage = 'Failed to fetch GA properties';
     let statusCode = 500;
-
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-    }
 
     // Define a more specific type for the error object
     interface GoogleApiError extends Error {
@@ -114,7 +104,6 @@ export async function GET() {
       statusCode = (error as GoogleApiError).response!.status!;
       errorMessage = (error as GoogleApiError).response?.data?.error?.message || errorMessage;
     }
-    console.error('Error details:', (error as GoogleApiError).response?.data || error); // Log full error details
 
     return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }

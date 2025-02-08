@@ -1,40 +1,54 @@
 'use client'
 
 import { useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { useAnalyticsSites } from '@/hooks/use-analytics-sites'
 
 interface ProjectFormProps {
-  onSubmit: (project: { name: string; url: string }) => void
+  onSubmit: (project: {
+    name: string;
+    url: string;
+    googleAnalyticsPropertyId?: string;
+    googleSearchConsolePropertyId?: string;
+  }) => void
   onCancel: () => void
 }
 
 export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
+  const [gaProperty, setGaProperty] = useState('')
+  const [gscProperty, setGscProperty] = useState('')
   const [error, setError] = useState('')
+  const { gaProperties, gscSites, isLoadingProperties, isLoadingSites } = useAnalyticsSites()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     const trimmedName = name.trim()
-    const trimmedUrl = url.trim();
+    const trimmedUrl = url.trim()
+    const trimmedGaProperty = gaProperty.trim()
+    const trimmedGscProperty = gscProperty.trim()
 
     if (!trimmedName || !trimmedUrl) {
-      setError('Name and URL are required');
-      return;
+      setError('Name and URL are required')
+      return
     }
 
     // Add https:// if missing
-    let finalUrl = trimmedUrl;
+    let finalUrl = trimmedUrl
     if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-      finalUrl = 'https://' + finalUrl;
+      finalUrl = 'https://' + finalUrl
     }
 
     try {
       onSubmit({
         name: trimmedName,
         url: finalUrl,
-      });
+        ...(trimmedGaProperty && { googleAnalyticsPropertyId: trimmedGaProperty }),
+        ...(trimmedGscProperty && { googleSearchConsolePropertyId: trimmedGscProperty }),
+      })
     } catch (error) {
       setError('Failed to create project')
       console.error('Form submission error:', error)
@@ -43,36 +57,74 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+      <div className="space-y-1">
+        <label htmlFor="name" className="text-sm font-medium">
           Project Name
         </label>
-        <div className="mt-1">
-          <input
-            type="text"
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-            placeholder="My Website"
-          />
-        </div>
+        <Input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="My Website"
+        />
       </div>
 
-      <div>
-        <label htmlFor="url" className="block text-sm font-medium text-gray-700">
+      <div className="space-y-1">
+        <label htmlFor="url" className="text-sm font-medium">
           URL
         </label>
-        <div className="mt-1">
-          <input
-            type="text"
-            id="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-            placeholder="example.com"
-          />
-        </div>
+        <Input
+          type="text"
+          id="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="example.com"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="gaProperty" className="text-sm font-medium">
+          Google Analytics Property (Optional)
+        </label>
+        <select
+          id="gaProperty"
+          name="gaProperty"
+          value={gaProperty}
+          onChange={(e) => setGaProperty(e.target.value)}
+          className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-describedby="gaProperty-description"
+          disabled={isLoadingProperties}
+        >
+          <option value="">Select a property</option>
+          {gaProperties.map((property) => (
+            <option key={property.id} value={property.id}>
+              {property.name} ({property.id}) - {property.accountName}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="gscProperty" className="text-sm font-medium">
+          Google Search Console Site (Optional)
+        </label>
+        <select
+          id="gscProperty"
+          name="gscProperty"
+          value={gscProperty}
+          onChange={(e) => setGscProperty(e.target.value)}
+          className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-describedby="gscProperty-description"
+          disabled={isLoadingSites}
+        >
+          <option value="">Select a site</option>
+          {gscSites.map((site) => (
+            <option key={site.url} value={site.url}>
+              {site.url} ({site.permissionLevel})
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

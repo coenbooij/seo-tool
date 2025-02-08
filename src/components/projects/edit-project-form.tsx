@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { ReloadIcon } from '@radix-ui/react-icons'
-import { useSession } from 'next-auth/react'; // Import useSession
+import { Input } from '@/components/ui/input'
+import { useAnalyticsSites } from '@/hooks/use-analytics-sites'
 
 interface Project {
   id: string
@@ -13,19 +13,6 @@ interface Project {
   sitemapUrl?: string | null
   gaPropertyId?: string | null
   gscVerifiedSite?: string | null
-}
-
-interface GAProperty {
-  id: string
-  name: string
-  websiteUrl: string
-  accountId: string
-  accountName: string
-}
-
-interface GSCVerifiedSite {
-    url: string;
-    permissionLevel: string;
 }
 
 interface EditProjectFormProps {
@@ -39,34 +26,8 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
   const [gaPropertyId, setGaPropertyId] = useState(project.gaPropertyId || '')
   const [gscVerifiedSite, setGscVerifiedSite] = useState(project.gscVerifiedSite || '')
   const [isSaving, setIsSaving] = useState(false)
-  const [isLoadingProperties, setIsLoadingProperties] = useState(true)
-  const [gaProperties, setGaProperties] = useState<GAProperty[]>([])
-    const [isLoadingSites, setIsLoadingSites] = useState(true);
-    const [gscSites, setGscSites] = useState<GSCVerifiedSite[]>([]);
-    const { toast } = useToast();
-    const { status } = useSession(); // Use useSession hook
-  
-      // Fetch GA properties when component mounts
-      useEffect(() => {
-      const fetchGAProperties = async () => {
-        try {
-          const response = await fetch('/api/analytics/properties');
-          if (!response.ok) throw new Error('Failed to fetch GA properties');
-          const properties = await response.json();
-          setGaProperties(properties);
-        } catch (error) {
-          console.error('Error fetching GA properties:', error);
-          toast({
-            description: "Failed to load Google Analytics properties",
-            variant: "destructive"
-          });
-        } finally {
-          setIsLoadingProperties(false);
-        }
-      };
-
-      fetchGAProperties();
-    }, [toast]);
+  const { toast } = useToast()
+  const { gaProperties, gscSites, isLoadingProperties, isLoadingSites } = useAnalyticsSites()
 
   useEffect(() => {
     setName(project.name)
@@ -76,28 +37,9 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
     setGscVerifiedSite(project.gscVerifiedSite || '')
   }, [project])
 
-    useEffect(() => {
-        const fetchGscSites = async () => {
-            try {
-                const response = await fetch('/api/search-console/sites');
-                if (!response.ok) throw new Error('Failed to fetch GSC sites');
-                const sites = await response.json();
-                setGscSites(sites);
-            } catch (error) {
-                console.error('Error fetching GSC sites:', error);
-                toast({
-                    description: "Failed to load Google Search Console sites",
-                    variant: "destructive"
-                });
-            } finally {
-                setIsLoadingSites(false);
-            }
-        }
-
-        if (status === 'authenticated') { // Only fetch if authenticated
-            fetchGscSites();
-        }
-    }, [status, toast]); // Add status as a dependency
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
+    setter(e.target.value)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,116 +94,100 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
     <Card className="p-6">
       <h2 className="text-lg font-semibold mb-6">Project Settings</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <div className="space-y-1">
+          <label htmlFor="name" className="text-sm font-medium">
             Project Name
           </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-              placeholder="My Website"
-            />
-          </div>
+          <Input
+            type="text"
+            id="name"
+            name="name"
+            value={name}
+            onChange={(e) => handleInputChange(e, setName)}
+            placeholder="My Website"
+          />
         </div>
 
-        <div>
-          <label htmlFor="url" className="block text-sm font-medium text-gray-700">
+        <div className="space-y-1">
+          <label htmlFor="url" className="text-sm font-medium">
             URL
           </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              id="url"
-              name="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-              placeholder="example.com"
-            />
-          </div>
+          <Input
+            type="text"
+            id="url"
+            name="url"
+            value={url}
+            onChange={(e) => handleInputChange(e, setUrl)}
+            placeholder="example.com"
+          />
         </div>
 
-        <div>
-          <label htmlFor="sitemapUrl" className="block text-sm font-medium text-gray-700">
+        <div className="space-y-1">
+          <label htmlFor="sitemapUrl" className="text-sm font-medium">
             Sitemap URL
           </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              id="sitemapUrl"
-              name="sitemapUrl"
-              value={sitemapUrl}
-              onChange={(e) => setSitemapUrl(e.target.value)}
-              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-              placeholder="https://example.com/sitemap.xml"
-              aria-describedby="sitemapUrl-description"
-            />
-          </div>
+          <Input
+            type="text"
+            id="sitemapUrl"
+            name="sitemapUrl"
+            value={sitemapUrl}
+            onChange={(e) => handleInputChange(e, setSitemapUrl)}
+            placeholder="https://example.com/sitemap.xml"
+            aria-describedby="sitemapUrl-description"
+          />
           <p className="mt-1 text-sm text-gray-500" id="sitemapUrl-description">
             Optional: URL to your XML sitemap
           </p>
         </div>
 
-        <div>
-          <label htmlFor="gaPropertyId" className="block text-sm font-medium text-gray-700">
+        <div className="space-y-1">
+          <label htmlFor="gaPropertyId" className="text-sm font-medium">
             Google Analytics Property
           </label>
-          <div className="mt-1 flex gap-2">
-            <div className="flex-1">
-              <select
-                id="gaPropertyId"
-                name="gaPropertyId"
-                value={gaPropertyId}
-                onChange={(e) => setGaPropertyId(e.target.value)}
-                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                aria-describedby="gaPropertyId-description"
-                disabled={isLoadingProperties}
-              >
-                <option value="">Select a property</option>
-                {gaProperties.map((property) => (
-                  <option key={property.id} value={property.id}>
-                    {property.name} ({property.id}) - {property.accountName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-          </div>
-          <p className="mt-1 text-sm text-gray-500" id="gaPropertyId-description">
+          <select
+            id="gaPropertyId"
+            name="gaPropertyId"
+            value={gaPropertyId}
+            onChange={(e) => setGaPropertyId(e.target.value)}
+            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-describedby="gaPropertyId-description"
+            disabled={isLoadingProperties}
+          >
+            <option value="">Select a property</option>
+            {gaProperties.map((property) => (
+              <option key={property.id} value={property.id}>
+                {property.name} ({property.id}) - {property.accountName}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-gray-500" id="gaPropertyId-description">
             Select your Google Analytics 4 property
           </p>
         </div>
 
-        <div>
-            <label htmlFor="gscVerifiedSite" className="block text-sm font-medium text-gray-700">
-                Google Search Console Site
-            </label>
-            <div className="mt-1">
-                <select
-                    id="gscVerifiedSite"
-                    name="gscVerifiedSite"
-                    value={gscVerifiedSite}
-                    onChange={(e) => setGscVerifiedSite(e.target.value)}
-                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    aria-describedby="gscVerifiedSite-description"
-                    disabled={isLoadingSites}
-                >
-                    <option value="">Select a site</option>
-                    {gscSites.map((site) => (
-                        <option key={site.url} value={site.url}>
-                            {site.url} ({site.permissionLevel})
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <p className="mt-1 text-sm text-gray-500" id="gscVerifiedSite-description">
-                Select your verified site in Google Search Console
-            </p>
+        <div className="space-y-1">
+          <label htmlFor="gscVerifiedSite" className="text-sm font-medium">
+            Google Search Console Site
+          </label>
+          <select
+            id="gscVerifiedSite"
+            name="gscVerifiedSite"
+            value={gscVerifiedSite}
+            onChange={(e) => setGscVerifiedSite(e.target.value)}
+            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-describedby="gscVerifiedSite-description"
+            disabled={isLoadingSites}
+          >
+            <option value="">Select a site</option>
+            {gscSites.map((site) => (
+              <option key={site.url} value={site.url}>
+                {site.url} ({site.permissionLevel})
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-gray-500" id="gscVerifiedSite-description">
+            Select your verified site in Google Search Console
+          </p>
         </div>
 
         <div className="flex justify-end">
