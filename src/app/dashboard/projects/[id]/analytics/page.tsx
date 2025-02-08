@@ -14,31 +14,31 @@ import type { TimeSpan } from '@/services/seo/google-analytics-service'
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 interface PageAnalytics {
-  path: string
-  pageViews: number
-  change: number
+  path: string;
+  pageViews: number;
+  change: number;
 }
 
 interface TrafficSource {
-  source: string
-  users: number
-  change: number
+  source: string;
+  users: number;
+  change: number;
 }
 
 interface Analytics {
-  users: number
-  usersChange: number
-  pageViews: number
-  pageViewsChange: number
-  avgSessionDuration: number
-  avgSessionDurationChange: number
-  bounceRate: number
-  bounceRateChange: number
-  topPages: PageAnalytics[]
-  trafficSources: TrafficSource[]
-  message?: string
-  gaPropertyId?: string
-  gscVerifiedSite?: string
+  users: number;
+  usersChange: number;
+  pageViews: number;
+  pageViewsChange: number;
+  avgSessionDuration: number;
+  avgSessionDurationChange: number;
+  bounceRate: number;
+  bounceRateChange: number;
+  topPages: PageAnalytics[];
+  trafficSources: TrafficSource[];
+  message?: string;
+  gaPropertyId?: string;
+  gscVerifiedSite?: string;
 }
 
 const timespanOptions: { value: TimeSpan; label: string }[] = [
@@ -179,25 +179,29 @@ export default function AnalyticsPage() {
       <Card className="p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Top Pages</h2>
         <div className="space-y-4">
-          {analytics.topPages.map((page, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {page.path}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {page.pageViews} views
-                </p>
+          {analytics.topPages && analytics.topPages.length > 0 ? (
+            analytics.topPages.map((page, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {page.path}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {page.pageViews} views
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    page.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {page.change >= 0 ? '+' : ''}{Math.round(page.change)}%
+                  </span>
+                </div>
               </div>
-              <div className="ml-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  page.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {page.change >= 0 ? '+' : ''}{Math.round(page.change)}%
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">No data available.</p>
+          )}
         </div>
       </Card>
 
@@ -205,25 +209,29 @@ export default function AnalyticsPage() {
       <Card className="p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Traffic Sources</h2>
         <div className="space-y-4">
-          {analytics.trafficSources.map((source, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {source.source}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {source.users} users
-                </p>
+          {analytics.trafficSources && analytics.trafficSources.length > 0 ? (
+            analytics.trafficSources.map((source, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {source.source}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {source.users} users
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    source.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {source.change >= 0 ? '+' : ''}{Math.round(source.change)}%
+                  </span>
+                </div>
               </div>
-              <div className="ml-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  source.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {source.change >= 0 ? '+' : ''}{Math.round(source.change)}%
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">No data available.</p>
+          )}
         </div>
       </Card>
     </div>
