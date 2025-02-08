@@ -6,7 +6,7 @@ import { InformationCircleIcon } from '@heroicons/react/24/outline'
 interface TrendCardProps {
   title: string
   value: string | number
-  change: number
+  change: number | undefined
   changeTimeframe: string
   trend: 'up' | 'down'
   format?: 'numeric' | 'percentage' | 'currency' | 'compact'
@@ -14,6 +14,7 @@ interface TrendCardProps {
   tooltip?: string
   className?: string
   footer?: React.ReactNode
+  invertColors?: boolean // New prop to invert color scheme for metrics where increase is bad
 }
 
 export default function TrendCard({
@@ -26,10 +27,11 @@ export default function TrendCard({
   loading = false,
   tooltip,
   className = '',
-  footer
+  footer,
+  invertColors = false,
 }: TrendCardProps) {
   const isPositive = trend === 'up'
-  const changeText = `${isPositive ? '+' : ''}${change}%`
+  const changeText = change !== undefined ? `${isPositive ? '+' : ''}${Math.round(change)}%` : '--'
 
   const formatValue = (val: string | number) => {
     const num = Number(val)
@@ -51,6 +53,19 @@ export default function TrendCard({
       default:
         return num.toLocaleString()
     }
+  }
+
+  // Determine color scheme based on trend and invertColors prop
+  const getColorScheme = () => {
+    if (change === undefined) return 'bg-gray-100 text-gray-800'
+    const isGood = invertColors ? !isPositive : isPositive
+    return isGood ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+  }
+
+  // Get icon color based on trend and invertColors prop
+  const getIconColor = () => {
+    const isGood = invertColors ? !isPositive : isPositive
+    return isGood ? 'text-green-500' : 'text-red-500'
   }
 
   if (loading) {
@@ -91,21 +106,19 @@ export default function TrendCard({
               </p>
               <div className="ml-4">
                 <span
-                  className={`inline-flex items-baseline px-2.5 py-0.5 rounded-full text-sm font-medium ${
-                    isPositive
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
+                  className={`inline-flex items-baseline px-2.5 py-0.5 rounded-full text-sm font-medium ${getColorScheme()}`}
                 >
-                  {isPositive ? (
-                    <ArrowUpIcon className="-ml-1 mr-0.5 h-4 w-4 flex-shrink-0 self-center text-green-500" />
-                  ) : (
-                    <ArrowDownIcon className="-ml-1 mr-0.5 h-4 w-4 flex-shrink-0 self-center text-red-500" />
-                  )}
+                  {change !== undefined ? (
+                    isPositive ? (
+                      <ArrowUpIcon className={`-ml-1 mr-0.5 h-4 w-4 flex-shrink-0 self-center ${getIconColor()}`} />
+                    ) : (
+                      <ArrowDownIcon className={`-ml-1 mr-0.5 h-4 w-4 flex-shrink-0 self-center ${getIconColor()}`} />
+                    )
+                  ) : null}
                   {changeText}
                 </span>
                 <span className="ml-1 text-sm text-gray-500">
-                  vs {changeTimeframe}
+                  {changeTimeframe}
                 </span>
               </div>
             </div>

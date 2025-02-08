@@ -1,133 +1,195 @@
-import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { google, analyticsdata_v1beta } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 
-// Simplified interface for now
 interface AnalyticsData {
   users: number;
+  usersChange: number;
   pageViews: number;
+  pageViewsChange: number;
   avgSessionDuration: number;
+  avgSessionDurationChange: number;
   bounceRate: number;
-  topPages: {
+  bounceRateChange: number;
+  topPages: Array<{
     path: string;
     pageViews: number;
-  }[];
-  trafficSources: { source: string; users: number; }[];
+    change: number;
+  }>;
+  trafficSources: Array<{
+    source: string;
+    users: number;
+    change: number;
+  }>;
 }
 
-class GoogleAnalyticsService {
-  private analyticsDataClient: BetaAnalyticsDataClient;
+export type TimeSpan = '7d' | '30d' | '90d' | '180d' | '365d';
+
+type DateRange = analyticsdata_v1beta.Schema$DateRange;
+
+export default class GoogleAnalyticsService {
+  private analytics: analyticsdata_v1beta.Analyticsdata;
   private propertyId: string;
 
-  /**
-   * Constructs the GoogleAnalyticsService.
-   * @param {OAuth2Client} authClient - The Google Auth client.
-   * @param {string} propertyId - Google Analytics Property ID (e.g., '123456789').
-   */
-  constructor(authClient: OAuth2Client, propertyId: string) {
-    // @ts-expect-error OAuth2Client works with BetaAnalyticsDataClient but types don't match exactly
-    this.analyticsDataClient = new BetaAnalyticsDataClient({ authClient });
-    // Store property ID, ensuring it has the required "properties/" prefix
-    this.propertyId = propertyId.startsWith('properties/') ? propertyId : `properties/${propertyId}`;
+  constructor(auth: OAuth2Client, propertyId: string) {
+    this.analytics = google.analyticsdata({ version: 'v1beta', auth });
+    // propertyId is already in the format "properties/12345" from properties dropdown
+    this.propertyId = propertyId;
   }
 
-  /**
-   * Fetches analytics data for a given date range.
-   * @param {string} startDate - Start date in YYYY-MM-DD format.
-   * @param {string} endDate - End date in YYYY-MM-DD format.
-   * @returns {Promise<AnalyticsData>} - Analytics data.
-   */
-  async getAnalytics(startDate: string, endDate: string): Promise<AnalyticsData> {
-    const [response] = await this.analyticsDataClient.runReport({
-     property: this.propertyId.startsWith('properties/') ? this.propertyId : `properties/${this.propertyId}`,
-      dateRanges: [
-        {
-          startDate,
-          endDate,
-        },
-      ],
-      dimensions: [
-        { name: 'pagePath' },
-        { name: 'sessionSource' }
-      ],
-      metrics: [
-        { name: 'totalUsers' },
-        { name: 'screenPageViews' },
-        { name: 'averageSessionDuration' },
-        { name: 'bounceRate' },
-      ],
-    });
-
-    if (!response.rows) {
-      return {
-        users: 0,
-        pageViews: 0,
-        avgSessionDuration: 0,
-        bounceRate: 0,
-        topPages: [],
-        trafficSources: [],
-      };
-    }
-
-    let users = 0;
-    let pageViews = 0;
-    let avgSessionDuration = 0;
-    let bounceRate = 0;
-    const topPages: { path: string; pageViews: number; }[] = [];
-    const trafficSources: { source: string; users: number; }[] = [];
-
-    response.rows.forEach((row) => {
-      if (!row.dimensionValues || !row.metricValues) return;
-
-      const pagePath = row.dimensionValues[0].value;
-      const sessionSource = row.dimensionValues[1].value;
-      const userCount = Number(row.metricValues[0].value);
-      const pageViewCount = Number(row.metricValues[1].value);
-      const sessionDuration = Number(row.metricValues[2].value);
-      const bounceRateValue = Number(row.metricValues[3].value);
-
-      users += userCount;
-      pageViews += pageViewCount;
-      avgSessionDuration += sessionDuration; // We'll calculate the average later
-      bounceRate += bounceRateValue;
-
-      // Aggregate top pages
-      const existingPage = topPages.find(p => p.path === pagePath);
-      if (existingPage) {
-        existingPage.pageViews += pageViewCount;
-      } else if (pagePath) {
-        topPages.push({ path: pagePath, pageViews: pageViewCount });
-      }
-
-      // Aggregate traffic sources
-      const existingSource = trafficSources.find(s => s.source === sessionSource);
-      if (existingSource) {
-        existingSource.users += userCount;
-      } else if (sessionSource) {
-        trafficSources.push({ source: sessionSource, users: userCount });
-      }
-    });
-
-    const rowCount = response.rows.length;
-    if (rowCount > 0) {
-      avgSessionDuration /= rowCount;
-      bounceRate /= rowCount;
-    }
-
-    // Sort top pages and traffic sources by views/users and limit to top 5
-    topPages.sort((a, b) => b.pageViews - a.pageViews);
-    trafficSources.sort((a, b) => b.users - a.users);
-    const top5Pages = topPages.slice(0, 5);
-    const top5TrafficSources = trafficSources.slice(0, 5);
+  private getDateRange(timeSpan: TimeSpan): { current: DateRange; previous: DateRange } {
+    const now = new Date();
+    const days = parseInt(timeSpan);
+    
+    const currentEndDate = new Date(now);
+    const currentStartDate = new Date(now);
+    currentStartDate.setDate(currentStartDate.getDate() - days);
+    
+    const previousEndDate = new Date(currentStartDate);
+    previousEndDate.setDate(previousEndDate.getDate() - 1);
+    const previousStartDate = new Date(previousEndDate);
+    previousStartDate.setDate(previousStartDate.getDate() - days);
 
     return {
-      users,
-      pageViews,
-      avgSessionDuration,
-      bounceRate,
-      topPages: top5Pages,
-      trafficSources: top5TrafficSources,
+      current: {
+        startDate: currentStartDate.toISOString().split('T')[0],
+        endDate: currentEndDate.toISOString().split('T')[0],
+      },
+      previous: {
+        startDate: previousStartDate.toISOString().split('T')[0],
+        endDate: previousEndDate.toISOString().split('T')[0],
+      },
     };
   }
-}
 
-export default GoogleAnalyticsService;
+  private calculateChange(current: number, previous: number): number {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  }
+
+  async getAnalytics(timeSpan: TimeSpan = '30d'): Promise<AnalyticsData | null> {
+    try {
+      const dateRanges = this.getDateRange(timeSpan);
+
+      const [mainMetrics, topPages, trafficSources] = await Promise.all([
+        // Main metrics
+        this.analytics.properties.runReport({
+          property: this.propertyId,
+          requestBody: {
+            dateRanges: [dateRanges.current, dateRanges.previous],
+            metrics: [
+              { name: 'activeUsers' },
+              { name: 'screenPageViews' },
+              { name: 'averageSessionDuration' },
+              { name: 'bounceRate' },
+            ],
+          },
+        }),
+        // Top pages
+        this.analytics.properties.runReport({
+          property: this.propertyId,
+          requestBody: {
+            dateRanges: [dateRanges.current, dateRanges.previous],
+            dimensions: [{ name: 'pagePath' }],
+            metrics: [{ name: 'screenPageViews' }],
+            dimensionFilter: {
+              filter: {
+                fieldName: 'pagePath',
+                stringFilter: {
+                  matchType: 'BEGINS_WITH',
+                  value: '/',
+                },
+              },
+            },
+            orderBys: [
+              {
+                metric: { metricName: 'screenPageViews' },
+                desc: true,
+              },
+            ],
+            limit: '10',
+          },
+        }),
+        // Traffic sources
+        this.analytics.properties.runReport({
+          property: this.propertyId,
+          requestBody: {
+            dateRanges: [dateRanges.current, dateRanges.previous],
+            dimensions: [{ name: 'sessionSource' }],
+            metrics: [{ name: 'activeUsers' }],
+            orderBys: [
+              {
+                metric: { metricName: 'activeUsers' },
+                desc: true,
+              },
+            ],
+            limit: '10',
+          },
+        }),
+      ]);
+
+      // Process main metrics - rows come in chronological order
+      const currentMetrics = mainMetrics.data.rows?.[0]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
+      const previousMetrics = mainMetrics.data.rows?.[1]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
+
+      // Process top pages - rows are paired (current, previous) for each path
+      const pagesMap = new Map<string, { current: number; previous: number }>();
+      topPages.data.rows?.forEach((row, index) => {
+        const path = row.dimensionValues?.[0]?.value || '';
+        const views = parseFloat(row.metricValues?.[0]?.value || '0');
+        const existing = pagesMap.get(path) || { current: 0, previous: 0 };
+        
+        if (index % 2 === 0) {
+          existing.current = views;
+        } else {
+          existing.previous = views;
+        }
+        pagesMap.set(path, existing);
+      });
+
+      // Process traffic sources - rows are paired (current, previous) for each source
+      const sourcesMap = new Map<string, { current: number; previous: number }>();
+      trafficSources.data.rows?.forEach((row, index) => {
+        const source = row.dimensionValues?.[0]?.value || '';
+        const users = parseFloat(row.metricValues?.[0]?.value || '0');
+        const existing = sourcesMap.get(source) || { current: 0, previous: 0 };
+        
+        if (index % 2 === 0) {
+          existing.current = users;
+        } else {
+          existing.previous = users;
+        }
+        sourcesMap.set(source, existing);
+      });
+
+      return {
+        users: currentMetrics[0],
+        usersChange: this.calculateChange(currentMetrics[0], previousMetrics[0]),
+        pageViews: currentMetrics[1],
+        pageViewsChange: this.calculateChange(currentMetrics[1], previousMetrics[1]),
+        avgSessionDuration: currentMetrics[2],
+        avgSessionDurationChange: this.calculateChange(currentMetrics[2], previousMetrics[2]),
+        bounceRate: currentMetrics[3],
+        bounceRateChange: this.calculateChange(currentMetrics[3], previousMetrics[3]),
+        topPages: Array.from(pagesMap.entries())
+          .map(([path, data]) => ({
+            path,
+            pageViews: data.current,
+            change: this.calculateChange(data.current, data.previous),
+          }))
+          .sort((a, b) => b.pageViews - a.pageViews)
+          .slice(0, 5),
+        trafficSources: Array.from(sourcesMap.entries())
+          .map(([source, data]) => ({
+            source,
+            users: data.current,
+            change: this.calculateChange(data.current, data.previous),
+          }))
+          .sort((a, b) => b.users - a.users)
+          .slice(0, 5),
+      };
+    } catch (error) {
+      console.error('Error fetching Google Analytics data:', error);
+      return null;
+    }
+  }
+}

@@ -2,11 +2,14 @@
 
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
+import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ReloadIcon, GearIcon } from "@radix-ui/react-icons"
 import TrendCard from '@/components/metrics/trend-card'
 import Link from 'next/link'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { TimeSpan } from '@/services/seo/google-analytics-service'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -38,10 +41,20 @@ interface Analytics {
   gscVerifiedSite?: string
 }
 
+const timespanOptions: { value: TimeSpan; label: string }[] = [
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+  { value: '180d', label: 'Last 180 days' },
+  { value: '365d', label: 'Last 365 days' },
+]
+
 export default function AnalyticsPage() {
   const params = useParams();
+  const [timespan, setTimespan] = useState<TimeSpan>('30d');
+  
   const { data: analytics, isLoading, mutate } = useSWR<Analytics>(
-    `/api/projects/${params.id}/analytics`,
+    `/api/projects/${params.id}/analytics?timespan=${timespan}`,
     fetcher
   );
 
@@ -96,14 +109,33 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
           <p className="text-sm text-gray-500">Overview of your site&apos;s performance</p>
         </div>
-        <Button
-          onClick={() => mutate()}
-          size="sm"
-          variant="ghost"
-        >
-          <ReloadIcon className="h-4 w-4 mr-2" />
-          Refresh Data
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select
+            value={timespan}
+            onValueChange={(value: TimeSpan) => setTimespan(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {timespanOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={() => mutate()}
+            size="sm"
+            variant="ghost"
+          >
+            <ReloadIcon className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
@@ -126,7 +158,7 @@ export default function AnalyticsPage() {
         />
         <TrendCard
           title="Avg. Session Duration"
-          value={analytics.avgSessionDuration}
+          value={analytics.avgSessionDuration ? Math.round(analytics.avgSessionDuration * 10) / 10 + ' s': 0}
           change={analytics.avgSessionDurationChange}
           changeTimeframe="vs last period"
           trend={analytics.avgSessionDurationChange >= 0 ? "up" : "down"}
@@ -137,7 +169,8 @@ export default function AnalyticsPage() {
           value={analytics.bounceRate}
           change={analytics.bounceRateChange}
           changeTimeframe="vs last period"
-          trend={analytics.bounceRateChange <= 0 ? "up" : "down"}
+          trend={analytics.bounceRateChange >= 0 ? "up" : "down"} // Keep actual direction
+          invertColors={true} // Invert colors since an increase in bounce rate is bad
           format="percentage"
         />
       </div>
@@ -160,7 +193,7 @@ export default function AnalyticsPage() {
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   page.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
-                  {page.change >= 0 ? '+' : ''}{page.change}%
+                  {page.change >= 0 ? '+' : ''}{Math.round(page.change)}%
                 </span>
               </div>
             </div>
@@ -186,7 +219,7 @@ export default function AnalyticsPage() {
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   source.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
-                  {source.change >= 0 ? '+' : ''}{source.change}%
+                  {source.change >= 0 ? '+' : ''}{Math.round(source.change)}%
                 </span>
               </div>
             </div>

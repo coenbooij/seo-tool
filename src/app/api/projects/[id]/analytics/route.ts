@@ -2,26 +2,31 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
-import GoogleSearchConsoleService from '@/services/seo/google-search-console-service';
-import GoogleAnalyticsService from '@/services/seo/google-analytics-service';
+import GoogleAnalyticsService, { TimeSpan } from '@/services/seo/google-analytics-service';
 import { google } from 'googleapis';
 
 // Simplified interfaces to match AnalyticsData
 interface PageAnalytics {
   path: string;
   pageViews: number;
+  change: number;
 }
 
 interface TrafficSource {
   source: string;
   users: number;
+  change: number;
 }
 
 interface Analytics {
   users: number;
+  usersChange: number;
   pageViews: number;
+  pageViewsChange: number;
   avgSessionDuration: number;
+  avgSessionDurationChange: number;
   bounceRate: number;
+  bounceRateChange: number;
   topPages: PageAnalytics[];
   trafficSources: TrafficSource[];
 }
@@ -30,96 +35,94 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  try {
+    const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id || !session.accessToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    if (!session?.user?.id || !session.accessToken) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const params = await context.params;
-  const { id } = params;
+    const params = await context.params;
+    const { id } = params;
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id,
-      userId: String(session.user.id),
-    },
-  });
+    // Get timespan from query parameters
+    const url = new URL(request.url);
+    const timespan = (url.searchParams.get('timespan') || '30d') as TimeSpan;
 
-  if (!project) {
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-  }
+    // Validate timespan
+    const validTimespans: TimeSpan[] = ['7d', '30d', '90d', '180d', '365d'];
+    if (!validTimespans.includes(timespan)) {
+      return NextResponse.json(
+        { error: 'Invalid timespan parameter' },
+        { status: 400 }
+      );
+    }
 
-  if (!project.gaPropertyId || !project.gscVerifiedSite) {
-    return NextResponse.json(
-      {
-        message:
-          'Please configure your project with a Google Analytics Property ID and a Google Search Console verified site. You can acces the configuration page by clicking on the gear icon in the top right corner.',
-        gaPropertyId: project.gaPropertyId,
-        gscVerifiedSite: project.gscVerifiedSite,
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        userId: String(session.user.id),
       },
-      { status: 200 }
-    ); // Use 200 OK to indicate request was successful, but there's missing config
-  }
+    });
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
 
-  oauth2Client.setCredentials({
-    access_token: session.accessToken,
-  });
+    if (!project.gaPropertyId || !project.gscVerifiedSite) {
+      return NextResponse.json(
+        {
+          message:
+            'Please configure your project with a Google Analytics Property ID and a Google Search Console verified site. You can access the configuration page by clicking on the gear icon in the top right corner.',
+          gaPropertyId: project.gaPropertyId,
+          gscVerifiedSite: project.gscVerifiedSite,
+        },
+        { status: 200 }
+      );
+    }
 
-  // Use the same oauth2Client for both services
-  const gscService = new GoogleSearchConsoleService(oauth2Client);
-  const gaService = new GoogleAnalyticsService(oauth2Client, project.gaPropertyId);
-
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
-  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-  const endDate = new Date().toISOString().split('T')[0];
-
-  const [gscResponse, gaData] = await Promise.all([
-    gscService.getPageAnalytics(project.gscVerifiedSite, startDate, endDate),
-    gaService.getAnalytics(startDate, endDate),
-  ]);
-
-  // Check if gaData is defined, and provide defaults if not
-  const safeGaData: Analytics = gaData ?? {
-    users: 0,
-    pageViews: 0,
-    avgSessionDuration: 0,
-    bounceRate: 0,
-    topPages: [],
-    trafficSources: [],
-  };
-
-  const gscData = gscResponse?.rows || [];
-
-  // Merge GSC data into GA's topPages
-  const topPages: PageAnalytics[] = safeGaData.topPages.map((page) => {
-    const gscPageData = gscData.find(
-      (gscRow) => gscRow?.keys?.[0] === page.path
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
     );
-    return {
-      path: page.path,
-      pageViews: page.pageViews,
+
+    oauth2Client.setCredentials({
+      access_token: session.accessToken,
+    });
+
+    console.log('Fetching analytics with property ID:', project.gaPropertyId);
+    const gaService = new GoogleAnalyticsService(oauth2Client, project.gaPropertyId);
+    const gaData = await gaService.getAnalytics(timespan);
+
+    if (!gaData) {
+      console.error('Failed to get analytics data');
+      return NextResponse.json(
+        { error: 'Failed to fetch analytics data' },
+        { status: 500 }
+      );
+    }
+
+    // Check if gaData is defined, and provide defaults if not
+    const safeGaData: Analytics = {
+      users: gaData.users ?? 0,
+      usersChange: gaData.usersChange ?? 0,
+      pageViews: gaData.pageViews ?? 0,
+      pageViewsChange: gaData.pageViewsChange ?? 0,
+      avgSessionDuration: gaData.avgSessionDuration ?? 0,
+      avgSessionDurationChange: gaData.avgSessionDurationChange ?? 0,
+      bounceRate: gaData.bounceRate ?? 0,
+      bounceRateChange: gaData.bounceRateChange ?? 0,
+      topPages: gaData.topPages ?? [],
+      trafficSources: gaData.trafficSources ?? [],
     };
-  });
 
-  const analytics: Analytics = {
-    users: safeGaData.users,
-    pageViews: safeGaData.pageViews,
-    avgSessionDuration: safeGaData.avgSessionDuration,
-    bounceRate: safeGaData.bounceRate,
-    topPages,
-    trafficSources: safeGaData.trafficSources.map((source) => ({
-      source: source.source,
-      users: source.users,
-    })),
-  };
-
-  return NextResponse.json(analytics);
+    return NextResponse.json(safeGaData);
+  } catch (error) {
+    console.error('Error in analytics route:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch analytics data' },
+      { status: 500 }
+    );
+  }
 }
