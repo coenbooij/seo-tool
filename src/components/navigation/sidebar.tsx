@@ -35,10 +35,10 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 w-64">
-      <div className="flex items-center justify-center h-16 px-4 bg-primary-900/50">
+    <div className="flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 w-64">
+      <div className="flex items-center justify-center h-16 px-4 bg-slate-900/50">
         <Link href="/dashboard">
-          <h1 className="text-primary-50 text-xl font-bold cursor-pointer hover:text-white transition-colors">SEO Tool</h1>
+          <h1 className="text-slate-50 text-xl font-bold cursor-pointer hover:text-white transition-colors">SEO Tool</h1>
         </Link>
       </div>
       <nav className="mt-5 flex-1 px-2 space-y-1">
@@ -50,13 +50,13 @@ export default function Sidebar() {
               href={item.href}
               className={`${
                 isActive
-                  ? 'bg-primary-700/50 text-white shadow-lg'
-                  : 'text-primary-100 hover:bg-primary-700/30 hover:text-white'
+                  ? 'bg-slate-700/50 text-white shadow-lg'
+                  : 'text-slate-100 hover:bg-slate-700/30 hover:text-white'
               } group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 ease-in-out`}
             >
               <svg
                 className={`${
-                  isActive ? 'text-primary-200' : 'text-primary-300 group-hover:text-primary-200'
+                  isActive ? 'text-slate-200' : 'text-slate-300 group-hover:text-slate-200'
                 } mr-3 flex-shrink-0 h-5 w-5 transition-colors`}
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -76,7 +76,7 @@ export default function Sidebar() {
           )
         })}
       </nav>
-      <div className="flex-shrink-0 flex border-t border-primary-700/50 p-4">
+      <div className="flex-shrink-0 flex border-t border-slate-700/50 p-4">
         <button
           onClick={handleSignOut}
           disabled={isSigningOut}
@@ -85,7 +85,7 @@ export default function Sidebar() {
           <div className="flex items-center">
             <div>
               <svg
-                className="text-primary-300 group-hover:text-primary-200 mr-3 flex-shrink-0 h-5 w-5 transition-colors"
+                className="text-slate-300 group-hover:text-slate-200 mr-3 flex-shrink-0 h-5 w-5 transition-colors"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -99,7 +99,7 @@ export default function Sidebar() {
                 />
               </svg>
             </div>
-            <div className="text-sm font-medium text-primary-100 group-hover:text-white transition-colors">
+            <div className="text-sm font-medium text-slate-100 group-hover:text-white transition-colors">
               {isSigningOut ? 'Signing out...' : 'Sign Out'}
             </div>
           </div>

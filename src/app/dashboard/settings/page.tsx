@@ -7,7 +7,7 @@ export default function SettingsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
       <div className="space-y-6 max-w-2xl">
-        <Card className="p-6">
+        <Card className="p-6 bg-white">
           <h2 className="text-lg font-semibold mb-4">User Preferences</h2>
           <div className="space-y-4">
             <div>
@@ -43,16 +43,13 @@ export default function SettingsPage() {
                 aria-label="Select language"
               >
                 <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="ja">Japanese</option>
+                <option value="nl">Nederlands</option>
               </select>
             </div>
           </div>
         </Card>
         
-        <Card className="p-6">
+        <Card className="p-6 bg-white">
           <h2 className="text-lg font-semibold mb-4">Notifications</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">

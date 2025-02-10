@@ -116,13 +116,13 @@ export default function AnalyticsPage() {
             value={timespan}
             onValueChange={(value: TimeSpan) => setTimespan(value)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] bg-white">
               <SelectValue placeholder="Select time period" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white border rounded-md shadow-md">
               <SelectGroup>
                 {timespanOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}  className="hover:bg-gray-100 cursor-pointer transition-colors">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -235,7 +235,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Top Pages */}
-      <Card className="p-6">
+      <Card className="p-6 bg-white">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Top Pages</h2>
         <div className="space-y-4">
           {analytics.topPages && analytics.topPages.length > 0 ? (
@@ -265,7 +265,7 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Traffic Sources */}
-      <Card className="p-6">
+      <Card className="p-6 bg-white">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Traffic Sources</h2>
         <div className="space-y-4">
           {analytics.trafficSources && analytics.trafficSources.length > 0 ? (

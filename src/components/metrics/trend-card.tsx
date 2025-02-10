@@ -93,7 +93,7 @@ export default function TrendCard({
   }
 
   return (
-    <div className={`relative bg-white/80 backdrop-blur-sm overflow-visible rounded-xl shadow-md ${className}`}>
+    <div className={`relative bg-white/80 backdrop-blur-sm overflow-visible rounded-xl shadow-sm ${className}`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-1">
