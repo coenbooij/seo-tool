@@ -8,8 +8,8 @@ interface ProjectFormProps {
   onSubmit: (project: {
     name: string;
     url: string;
-    googleAnalyticsPropertyId?: string;
-    googleSearchConsolePropertyId?: string;
+    gaPropertyId?: string;
+    gscVerifiedSite?: string;
   }) => void
   onCancel: () => void
 }
@@ -17,8 +17,8 @@ interface ProjectFormProps {
 export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
-  const [gaProperty, setGaProperty] = useState('')
-  const [gscProperty, setGscProperty] = useState('')
+  const [gaPropertyId, setGaPropertyId] = useState('')
+  const [gscVerifiedSite, setGscVerifiedSite] = useState('')
   const [error, setError] = useState('')
   const { gaProperties, gscSites, isLoadingProperties, isLoadingSites } = useAnalyticsSites()
 
@@ -28,8 +28,8 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
 
     const trimmedName = name.trim()
     const trimmedUrl = url.trim()
-    const trimmedGaProperty = gaProperty.trim()
-    const trimmedGscProperty = gscProperty.trim()
+    const trimmedGaPropertyId = gaPropertyId.trim()
+    const trimmedGscVerifiedSite = gscVerifiedSite.trim()
 
     if (!trimmedName || !trimmedUrl) {
       setError('Name and URL are required')
@@ -46,8 +46,8 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
       onSubmit({
         name: trimmedName,
         url: finalUrl,
-        ...(trimmedGaProperty && { googleAnalyticsPropertyId: trimmedGaProperty }),
-        ...(trimmedGscProperty && { googleSearchConsolePropertyId: trimmedGscProperty }),
+        ...(trimmedGaPropertyId && { gaPropertyId: trimmedGaPropertyId }),
+        ...(trimmedGscVerifiedSite && { gscVerifiedSite: trimmedGscVerifiedSite }),
       })
     } catch (error) {
       setError('Failed to create project')
@@ -84,16 +84,16 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="gaProperty" className="text-sm font-medium">
+        <label htmlFor="gaPropertyId" className="text-sm font-medium">
           Google Analytics Property (Optional)
         </label>
         <select
-          id="gaProperty"
-          name="gaProperty"
-          value={gaProperty}
-          onChange={(e) => setGaProperty(e.target.value)}
+          id="gaPropertyId"
+          name="gaPropertyId"
+          value={gaPropertyId}
+          onChange={(e) => setGaPropertyId(e.target.value)}
           className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-          aria-describedby="gaProperty-description"
+          aria-describedby="gaPropertyId-description"
           disabled={isLoadingProperties}
         >
           <option value="">Select a property</option>
@@ -106,16 +106,16 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="gscProperty" className="text-sm font-medium">
+        <label htmlFor="gscVerifiedSite" className="text-sm font-medium">
           Google Search Console Site (Optional)
         </label>
         <select
-          id="gscProperty"
-          name="gscProperty"
-          value={gscProperty}
-          onChange={(e) => setGscProperty(e.target.value)}
+          id="gscVerifiedSite"
+          name="gscVerifiedSite"
+          value={gscVerifiedSite}
+          onChange={(e) => setGscVerifiedSite(e.target.value)}
           className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-          aria-describedby="gscProperty-description"
+          aria-describedby="gscVerifiedSite-description"
           disabled={isLoadingSites}
         >
           <option value="">Select a site</option>

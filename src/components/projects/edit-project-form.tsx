@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { Input } from '@/components/ui/input'
 import { useAnalyticsSites } from '@/hooks/use-analytics-sites'
+import { useRouter } from 'next/navigation'
 
 interface Project {
   id: string
@@ -26,7 +27,9 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
   const [gaPropertyId, setGaPropertyId] = useState(project.gaPropertyId || '')
   const [gscVerifiedSite, setGscVerifiedSite] = useState(project.gscVerifiedSite || '')
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
   const { gaProperties, gscSites, isLoadingProperties, isLoadingSites } = useAnalyticsSites()
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
           url: trimmedUrl,
           sitemapUrl: sitemapUrl.trim() || null,
           gaPropertyId: gaPropertyId.trim() || null,
-          gscVerifiedSite: gscVerifiedSite.trim() || null, // Keep sending as string
+          gscVerifiedSite: gscVerifiedSite.trim() || null,
         }),
       })
 
@@ -87,6 +90,36 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
       console.error('Form submission error:', error)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete project')
+      }
+
+      toast({
+        description: "Project deleted successfully",
+      })
+      router.push('/dashboard/projects')
+    } catch (error) {
+      toast({
+        description: "Failed to delete project",
+        variant: "destructive"
+      })
+      console.error('Delete error:', error)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -190,7 +223,15 @@ export default function EditProjectForm({ project }: EditProjectFormProps) {
           </p>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete Project'}
+          </button>
           <button
             type="submit"
             disabled={isSaving}
