@@ -20,6 +20,8 @@ export async function GET() {
         name: true,
         url: true,
         userId: true,
+        gaPropertyId: true,
+        gscVerifiedSite: true,
         createdAt: true,
         updatedAt: true
       },
@@ -94,6 +96,8 @@ export async function POST(request: NextRequest) {
         name: body.name.trim(),
         url: body.url.trim().toLowerCase(),
         domain,
+        gaPropertyId: body.gaPropertyId?.trim() || null,
+        gscVerifiedSite: body.gscVerifiedSite?.trim() || null,
         userId: session.user.id
       }
     });

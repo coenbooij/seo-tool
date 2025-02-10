@@ -32,6 +32,9 @@ interface Analytics {
   topPages: PageAnalytics[];
   trafficSources: TrafficSource[];
   gscData?: GSCData;
+  message?: string;
+  gaPropertyId?: string | null;
+  gscVerifiedSite?: string | null;
 }
 
 // Helper function to parse timespan into days
@@ -100,11 +103,11 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    if (!project.gaPropertyId || !project.gscVerifiedSite) {
+    if (!project.gaPropertyId && !project.gscVerifiedSite) {
       return NextResponse.json(
         {
           message:
-            'Please configure your project with a Google Analytics Property ID and a Google Search Console verified site. You can access the configuration page by clicking on the gear icon in the top right corner.',
+            'Please configure your project with either a Google Analytics Property ID or a Google Search Console verified site. You can access the configuration page by clicking on the gear icon in the top right corner.',
           gaPropertyId: project.gaPropertyId,
           gscVerifiedSite: project.gscVerifiedSite,
         },
@@ -122,49 +125,74 @@ export async function GET(
       access_token: session.accessToken,
     });
 
-    console.log('Fetching analytics with property ID:', project.gaPropertyId);
-    const gaService = new GoogleAnalyticsService(oauth2Client, project.gaPropertyId);
-    const gaData = await gaService.getAnalytics(timespan);
-
-    // Fetch GSC data
-    const gscService = new GoogleSearchConsoleService(oauth2Client);
     const days = timespanToDays(timespan);
     const { startDate, endDate } = getDateRange(days);
+    
+    let gaData = null;
+    let gscData: GSCData | undefined;
 
-    console.log('Fetching GSC data:', {
-      site: project.gscVerifiedSite,
-      startDate,
-      endDate,
-      days
-    });
+    // Fetch GA data if configured
+    if (project.gaPropertyId) {
+      console.log('Fetching analytics with property ID:', project.gaPropertyId);
+      const gaService = new GoogleAnalyticsService(oauth2Client, project.gaPropertyId);
+      gaData = await gaService.getAnalytics(timespan);
+    }
 
-    const gscData = await gscService.getAggregatedData(
-      project.gscVerifiedSite, 
-      startDate,
-      endDate
-    );
+    // Fetch GSC data if configured
+    if (project.gscVerifiedSite) {
+      console.log('Fetching GSC data:', {
+        site: project.gscVerifiedSite,
+        startDate,
+        endDate,
+        days
+      });
 
-    if (!gaData) {
-      console.error('Failed to get analytics data');
+      const gscService = new GoogleSearchConsoleService(oauth2Client);
+      try {
+        gscData = await gscService.getAggregatedData(
+          project.gscVerifiedSite, 
+          startDate,
+          endDate
+        );
+      } catch (error) {
+        console.error('Error fetching GSC data:', error);
+        // Don't fail the whole request if GSC fails
+        gscData = undefined;
+      }
+    }
+
+    // If neither requests succeeded
+    if (!gaData && !gscData) {
+      console.error('Failed to get any data');
       return NextResponse.json(
         { error: 'Failed to fetch analytics data' },
         { status: 500 }
       );
     }
 
-    // Use the new GSCData interface and simplify the structure
+    // Use empty GA data if not available
+    const emptyGaData = {
+      users: 0,
+      usersChange: 0,
+      pageViews: 0,
+      pageViewsChange: 0,
+      avgSessionDuration: 0,
+      avgSessionDurationChange: 0,
+      bounceRate: 0,
+      bounceRateChange: 0,
+      topPages: [],
+      trafficSources: []
+    };
+
+    // Use the available data
     const safeGaData: Analytics = {
-      users: gaData.users ?? 0,
-      usersChange: gaData.usersChange ?? 0,
-      pageViews: gaData.pageViews ?? 0,
-      pageViewsChange: gaData.pageViewsChange ?? 0,
-      avgSessionDuration: gaData.avgSessionDuration ?? 0,
-      avgSessionDurationChange: gaData.avgSessionDurationChange ?? 0,
-      bounceRate: gaData.bounceRate ?? 0,
-      bounceRateChange: gaData.bounceRateChange ?? 0,
-      topPages: gaData.topPages ?? [],
-      trafficSources: gaData.trafficSources ?? [],
-      gscData: gscData
+      ...(gaData || emptyGaData),
+      gscData,
+      message: !project.gaPropertyId ? 'Google Analytics not configured' : 
+               !project.gscVerifiedSite ? 'Google Search Console not configured' : 
+               undefined,
+      gaPropertyId: project.gaPropertyId,
+      gscVerifiedSite: project.gscVerifiedSite
     };
 
     return NextResponse.json(safeGaData);

@@ -8,6 +8,8 @@ interface Project {
   id: string // Changed from number to string since we're using CUID
   name: string
   url: string
+  gaPropertyId?: string | null
+  gscVerifiedSite?: string | null
   createdAt: string
 }
 
@@ -29,6 +31,8 @@ export default function ProjectsPage() {
   const handleCreateProject = async (projectData: {
     name: string
     url: string
+    gaPropertyId?: string
+    gscVerifiedSite?: string
   }) => {
     try {
       setErrorMessage('')
