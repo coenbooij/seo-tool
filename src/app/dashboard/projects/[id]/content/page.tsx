@@ -103,10 +103,22 @@ export default function ContentPage() {
   const [currentSitemapUrl, setCurrentSitemapUrl] = useState('')
   const [sitemapDomain, setSitemapDomain] = useState('')
 
+  // Fetch project details to get domain
+  const { data: projectData } = useSWR(`/api/projects/${params.id}`, fetcher)
+
+  // Fetch content data
   const { data, isLoading, mutate } = useSWR<ContentResponse>(
     `/api/projects/${params.id}/content${currentSitemapUrl ? `?sitemapUrl=${encodeURIComponent(currentSitemapUrl)}` : ''}`,
     fetcher
   )
+
+  // Initialize sitemap domain from project data
+  useEffect(() => {
+    if (projectData?.url) {
+      const parsedUrl = new URL(projectData.url)
+      setSitemapDomain(parsedUrl.origin)
+    }
+  }, [projectData?.url])
 
   // Set initial sitemap URL from API response and extract domain/path
   useEffect(() => {
@@ -114,7 +126,8 @@ export default function ContentPage() {
       try {
         const parsedUrl = new URL(data.sitemapUrl)
         setSitemapDomain(parsedUrl.origin)
-        setCustomSitemapPath(parsedUrl.pathname)
+        // Remove leading slash to avoid double slash since we're adding it in the display
+        setCustomSitemapPath(parsedUrl.pathname.replace(/^\//, ''))
         setCurrentSitemapUrl(data.sitemapUrl)
       } catch {
         console.error("Invalid sitemap URL:", data.sitemapUrl)
@@ -145,7 +158,7 @@ export default function ContentPage() {
 
   const handleSitemapChange = async () => {
       setIsReloading(true)
-      const fullSitemapUrl = sitemapDomain + customSitemapPath;
+      const fullSitemapUrl = `${sitemapDomain}/${customSitemapPath.replace(/^\//, '')}`;
       setCurrentSitemapUrl(fullSitemapUrl)
       await mutate()
       setIsReloading(false)
@@ -180,7 +193,7 @@ export default function ContentPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 min-w-[200px] inline-block text-right">{sitemapDomain}</span>
+              <span className="text-sm text-gray-500 min-w-[200px] inline-block text-right">{sitemapDomain}/</span>
               <input
                 type="text"
                 placeholder="Sitemap path"

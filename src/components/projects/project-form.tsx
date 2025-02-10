@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { useAnalyticsSites } from '@/hooks/use-analytics-sites'
 
@@ -10,6 +10,7 @@ interface ProjectFormProps {
     url: string;
     gaPropertyId?: string;
     gscVerifiedSite?: string;
+    sitemapUrl?: string;
   }) => void
   onCancel: () => void
 }
@@ -20,6 +21,19 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
   const [gaPropertyId, setGaPropertyId] = useState('')
   const [gscVerifiedSite, setGscVerifiedSite] = useState('')
   const [error, setError] = useState('')
+  const [sitemapUrl, setSitemapUrl] = useState('')
+
+  // Update sitemap URL when website URL changes
+  useEffect(() => {
+    if (url) {
+      try {
+        const parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`)
+        setSitemapUrl(`${parsedUrl.origin}/sitemap.xml`)
+      } catch {
+        // Invalid URL, will be caught in submit handler
+      }
+    }
+  }, [url])
   const { gaProperties, gscSites, isLoadingProperties, isLoadingSites } = useAnalyticsSites()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,6 +60,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
       onSubmit({
         name: trimmedName,
         url: finalUrl,
+        sitemapUrl,
         ...(trimmedGaPropertyId && { gaPropertyId: trimmedGaPropertyId }),
         ...(trimmedGscVerifiedSite && { gscVerifiedSite: trimmedGscVerifiedSite }),
       })

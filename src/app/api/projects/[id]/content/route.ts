@@ -105,22 +105,21 @@ async function analyzePage(url: string): Promise<PageAnalysis> {
       score: 0,
       lastUpdated: new Date().toISOString(),
       metrics: {
-        title: metrics.content?.title ?? '',
-        titleLength: metrics.content?.titleLength ?? 0,
-        description: metrics.content?.description ?? '',
-        descriptionLength: metrics.content?.descriptionLength ?? 0,
-        h1Count: metrics.content?.h1Count ?? 0,
-        h1Tags: metrics.content?.h1Tags ?? [],
-        h2Count: metrics.content?.h2Count ?? 0,
-        h2Tags: metrics.content?.h2Tags ?? [],
-        imageCount: metrics.content?.imageCount ?? 0,
-        imagesWithoutAlt: metrics.content?.imagesWithoutAlt ?? 0,
-        wordCount: metrics.content?.wordCount ?? 0,
-        hasCanonical: metrics.content?.hasCanonical ?? false,
-        hasRobots: metrics.content?.hasRobots ?? false,
-        hasViewport: metrics.content?.hasViewport ?? false,
-        hasSchema: metrics.content?.hasSchema ?? false,
-        metaTags: []
+        avgScore: 0,
+        change: 0,
+        title: '',
+        titleLength: 0,
+        description: '',
+        descriptionLength: 0,
+        h1Count: 0,
+        h2Count: 0,
+        imageCount: 0,
+        imagesWithoutAlt: 0,
+        wordCount: 0,
+        hasCanonical: false,
+        hasRobots: false,
+        hasViewport: false,
+        hasSchema: false
       },
       issues: [{
         type: 'error',
@@ -165,16 +164,20 @@ export async function GET(
       })
     }
 
+    if (!project.domain) {
+      return NextResponse.json({ error: 'Project domain is not set' }, { status: 400 })
+    }
+
     // Ensure domain has proper protocol
-    const domain = project.domain.startsWith('http') 
-      ? project.domain 
+    const domain = project.domain.startsWith('http')
+      ? project.domain
       : `https://${project.domain}`
 
     // Use saved sitemap URL if available and no custom URL provided
     const sitemapToUse = customSitemapUrl || project.sitemapUrl || undefined
 
     // Fetch sitemap and get all URLs
-    const sitemapUrls = await fetchSitemap(domain, sitemapToUse)
+    const sitemapUrls = await fetchSitemap(domain, sitemapToUse || undefined)
     if (sitemapUrls.length === 0) {
       return NextResponse.json(
         { error: 'No URLs found in sitemap' },
