@@ -65,9 +65,11 @@ export default function TrendCard({
 
   // Determine color scheme based on trend and invertColors prop
   const getColorScheme = () => {
-    if (change === undefined) return 'bg-gray-100 text-gray-800'
+    if (change === undefined) return 'bg-neutral-100 text-neutral-600'
     const isGood = invertColors ? !isPositive : isPositive
-    return isGood ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+    return isGood 
+      ? 'bg-green-100 text-green-700'
+      : 'bg-red-100 text-red-700'
   }
 
   // Get icon color based on trend and invertColors prop
@@ -78,12 +80,12 @@ export default function TrendCard({
 
   if (loading) {
     return (
-      <div className={`bg-white overflow-hidden rounded-lg shadow animate-pulse ${className}`}>
+      <div className={`bg-white overflow-hidden rounded-xl shadow-md ${className}`}>
         <div className="p-5">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-neutral-200 rounded w-1/4"></div>
           <div className="mt-4 flex items-baseline space-x-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-8 bg-neutral-200 rounded w-1/3"></div>
+            <div className="h-6 bg-neutral-200 rounded w-1/4"></div>
           </div>
         </div>
       </div>
@@ -91,27 +93,27 @@ export default function TrendCard({
   }
 
   return (
-    <div className={`relative bg-white overflow-visible rounded-lg shadow ${className}`}>
+    <div className={`relative bg-white/80 backdrop-blur-sm overflow-visible rounded-xl shadow-md ${className}`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-1">
             <div className="flex items-center">
-              <h3 className="text-lg font-medium leading-6 text-gray-900">
+              <h3 className="text-lg font-medium leading-6 text-neutral-900">
                 {title}
               </h3>
               {tooltip && (
                 <div className="ml-2 relative group">
-                  <InformationCircleIcon className="h-5 w-5 text-gray-400 cursor-help" />
-                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2 text-sm bg-gray-900 text-white rounded-md shadow-lg z-50">
+                  <InformationCircleIcon className="h-5 w-5 text-neutral-400" />
+                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2 text-sm bg-neutral-900 text-white rounded-lg shadow-lg z-50">
                     {tooltip}
                     {/* Arrow */}
-                    <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45"></div>
+                    <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-3 h-3 bg-neutral-900 rotate-45"></div>
                   </div>
                 </div>
               )}
             </div>
             <div className="mt-3 flex items-baseline">
-              <p className="text-2xl font-semibold text-gray-900">
+              <p className="text-2xl font-semibold text-neutral-900">
                 {formatValue(value)}
               </p>
               <div className="ml-4">
@@ -128,7 +130,7 @@ export default function TrendCard({
                   {changeText}
                 </span>
                 {changeTimeframe && (
-                  <span className="ml-1 text-sm text-gray-500">
+                  <span className="ml-1 text-sm text-neutral-500">
                     {changeTimeframe}
                   </span>
                 )}
@@ -137,7 +139,7 @@ export default function TrendCard({
           </div>
         </div>
         {footer && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-neutral-200">
             {footer}
           </div>
         )}
