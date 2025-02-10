@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createGoogleAuthClient } from '@/lib/google-auth';
 
 interface GA4Property {
   name: string;
@@ -26,24 +27,7 @@ export async function GET() {
   }
 
   try {
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
-
-    oauth2Client.setCredentials({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
-      scope: 'https://www.googleapis.com/auth/analytics.readonly',
-    });
-
-    // Set up token refresh callback
-    oauth2Client.on('tokens', async (tokens) => {
-      if (tokens.refresh_token || tokens.access_token) {
-        // Handle token refresh silently
-      }
-    });
+    const oauth2Client = createGoogleAuthClient(session);
 
     const analyticsAdmin = google.analyticsadmin({
       version: 'v1alpha',
@@ -105,6 +89,7 @@ export async function GET() {
       errorMessage = (error as GoogleApiError).response?.data?.error?.message || errorMessage;
     }
 
+    console.error('Google Analytics API error:', error);
     return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

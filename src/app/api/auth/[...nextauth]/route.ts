@@ -55,6 +55,7 @@ callbacks: {
               access_token: account?.access_token,
               refresh_token: account?.refresh_token,
               scope: account?.scope,
+              expires_at: account?.expires_at,
             },
           });
         }
@@ -75,6 +76,7 @@ callbacks: {
               access_token: account?.access_token,
               refresh_token: account?.refresh_token,
               scope: account?.scope,
+              expires_at: account?.expires_at,
             },
           },
         },
@@ -103,6 +105,7 @@ callbacks: {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.scope = account.scope;
+        token.expires_at = account.expires_at;
       }
       return token;
     } catch (error) {
@@ -122,6 +125,9 @@ callbacks: {
         }
         if (token.refreshToken) {
           session.refreshToken = token.refreshToken as string;
+        }
+        if (token.scope) {
+          session.scope = token.scope as string;
         }
       } else {
         throw new Error('No user ID in token');
