@@ -101,8 +101,10 @@ class GoogleSearchConsoleService {
     const previousStartDateStr = previousStartDate.toISOString().split('T')[0];
     const previousEndDateStr = previousEndDate.toISOString().split('T')[0];
 
-    const [currentResponse, previousResponse] = await Promise.all([
-      webmasters.searchanalytics.query({
+    let currentResponse, previousResponse;
+
+    try {
+      currentResponse = await webmasters.searchanalytics.query({
         siteUrl,
         requestBody: {
           startDate,
@@ -110,8 +112,14 @@ class GoogleSearchConsoleService {
           dataState: 'final', // Only get final data
           dimensions: [], // No dimensions for aggregated data
         },
-      }),
-      webmasters.searchanalytics.query({
+      });
+    } catch (error) {
+      console.error('Error fetching current GSC data:', error);
+      currentResponse = { data: { rows: [] } }; // Provide default empty data
+    }
+
+    try {
+      previousResponse = await webmasters.searchanalytics.query({
         siteUrl,
         requestBody: {
           startDate: previousStartDateStr,
@@ -119,8 +127,11 @@ class GoogleSearchConsoleService {
           dataState: 'final', // Only get final data
           dimensions: [], // No dimensions for aggregated data
         },
-      }),
-    ]);
+      });
+    } catch (error) {
+      console.error('Error fetching previous GSC data:', error);
+      previousResponse = { data: { rows: [] } }; // Provide default empty data
+    }
 
     // Sum up all rows for total metrics
     const current = this.sumRows(currentResponse.data.rows as SearchAnalyticsRow[]);

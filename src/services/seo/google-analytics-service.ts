@@ -29,8 +29,10 @@ type DateRange = analyticsdata_v1beta.Schema$DateRange;
 export default class GoogleAnalyticsService {
   private analytics: analyticsdata_v1beta.Analyticsdata;
   private propertyId: string;
+  private auth: OAuth2Client;
 
   constructor(auth: OAuth2Client, propertyId: string) {
+    this.auth = auth;
     this.analytics = google.analyticsdata({ version: 'v1beta', auth });
     this.propertyId = propertyId;
   }
@@ -143,131 +145,172 @@ export default class GoogleAnalyticsService {
 
   async getAnalytics(timeSpan: TimeSpan = '30d'): Promise<AnalyticsData | null> {
     try {
-      const dateRanges = this.getDateRange(timeSpan);
+      // Verify auth state before making requests
+      if (!this.auth) {
+        throw new Error('No authentication client available');
+      }
 
-      const [mainMetrics, topPages, trafficSources] = await Promise.all([
+      // Force token refresh to ensure we have a valid token
+      try {
+        await this.auth.getAccessToken();
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        throw new Error('Invalid Credentials - Token refresh failed');
+      }
+
+      const dateRanges = this.getDateRange(timeSpan);
+      let mainMetrics, topPages, trafficSources;
+
+      try {
         // Main metrics
-        this.analytics.properties.runReport({
-          property: this.propertyId,
-          requestBody: {
-            dateRanges: [dateRanges.current, dateRanges.previous],
-            metrics: [
-              { name: 'activeUsers' },
-              { name: 'screenPageViews' },
-              { name: 'averageSessionDuration' },
-              { name: 'bounceRate' },
-            ],
-          },
-        }),
+        try {
+          mainMetrics = await this.analytics.properties.runReport({
+            property: this.propertyId,
+            requestBody: {
+              dateRanges: [dateRanges.current, dateRanges.previous],
+              metrics: [
+                { name: 'activeUsers' },
+                { name: 'screenPageViews' },
+                { name: 'averageSessionDuration' },
+                { name: 'bounceRate' },
+              ],
+            },
+          });
+        } catch (error) {
+          console.error('Error fetching main metrics:', error);
+          mainMetrics = { data: { rows: [] } }; // Provide default empty data
+        }
+
         // Top pages
-        this.analytics.properties.runReport({
-          property: this.propertyId,
-          requestBody: {
-            dateRanges: [dateRanges.current, dateRanges.previous],
-            dimensions: [{ name: 'pagePath' }],
-            metrics: [{ name: 'screenPageViews' }],
-            dimensionFilter: {
-              filter: {
-                fieldName: 'pagePath',
-                stringFilter: {
-                  matchType: 'BEGINS_WITH',
-                  value: '/',
+        try {
+          topPages = await this.analytics.properties.runReport({
+            property: this.propertyId,
+            requestBody: {
+              dateRanges: [dateRanges.current, dateRanges.previous],
+              dimensions: [{ name: 'pagePath' }],
+              metrics: [{ name: 'screenPageViews' }],
+              dimensionFilter: {
+                filter: {
+                  fieldName: 'pagePath',
+                  stringFilter: {
+                    matchType: 'BEGINS_WITH',
+                    value: '/',
+                  },
                 },
               },
+              orderBys: [
+                {
+                  metric: { metricName: 'screenPageViews' },
+                  desc: true,
+                },
+              ],
+              limit: '10',
             },
-            orderBys: [
-              {
-                metric: { metricName: 'screenPageViews' },
-                desc: true,
-              },
-            ],
-            limit: '10',
-          },
-        }),
+          });
+        } catch (error) {
+          console.error('Error fetching top pages:', error);
+          topPages = { data: { rows: [] } }; // Provide default empty data
+        }
+
         // Traffic sources with session medium
-        this.analytics.properties.runReport({
-          property: this.propertyId,
-          requestBody: {
-            dateRanges: [dateRanges.current, dateRanges.previous],
-            dimensions: [
-              { name: 'sessionSource' },
-              { name: 'sessionMedium' }
-            ],
-            metrics: [{ name: 'activeUsers' }],
-            orderBys: [
-              {
-                metric: { metricName: 'activeUsers' },
-                desc: true,
-              },
-            ],
-            limit: '25',
-          },
-        }),
-      ]);
-
-      const currentMetrics = mainMetrics.data.rows?.[0]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
-      const previousMetrics = mainMetrics.data.rows?.[1]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
-
-      const pagesMap = new Map<string, { current: number; previous: number }>();
-      topPages.data.rows?.forEach((row, index) => {
-        const path = row.dimensionValues?.[0]?.value || '';
-        const views = parseFloat(row.metricValues?.[0]?.value || '0');
-        const existing = pagesMap.get(path) || { current: 0, previous: 0 };
-        
-        if (index % 2 === 0) {
-          existing.current = views;
-        } else {
-          existing.previous = views;
+        try {
+          trafficSources = await this.analytics.properties.runReport({
+            property: this.propertyId,
+            requestBody: {
+              dateRanges: [dateRanges.current, dateRanges.previous],
+              dimensions: [
+                { name: 'sessionSource' },
+                { name: 'sessionMedium' }
+              ],
+              metrics: [{ name: 'activeUsers' }],
+              orderBys: [
+                {
+                  metric: { metricName: 'activeUsers' },
+                  desc: true,
+                },
+              ],
+              limit: '25',
+            },
+          });
+        } catch (error) {
+          console.error('Error fetching traffic sources:', error);
+          trafficSources = { data: { rows: [] } }; // Provide default empty data
         }
-        pagesMap.set(path, existing);
-      });
 
-      const sourcesMap = new Map<string, { current: number; previous: number }>();
-      trafficSources.data.rows?.forEach((row, index) => {
-        const source = row.dimensionValues?.[0]?.value;
-        const medium = row.dimensionValues?.[1]?.value;
-        const users = parseFloat(row.metricValues?.[0]?.value || '0');
-        
-        const sourceName = this.formatTrafficSource(source, medium);
-        const existing = sourcesMap.get(sourceName) || { current: 0, previous: 0 };
-        
-        if (index % 2 === 0) {
-          existing.current += users;
-        } else {
-          existing.previous += users;
+        const currentMetrics = mainMetrics.data.rows?.[0]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
+        const previousMetrics = mainMetrics.data.rows?.[1]?.metricValues?.map(v => parseFloat(v.value || '0')) || [0, 0, 0, 0];
+
+        const pagesMap = new Map<string, { current: number; previous: number }>();
+        topPages.data.rows?.forEach((row, index) => {
+          const path = row?.dimensionValues?.[0]?.value || '';
+          const views = parseFloat(row?.metricValues?.[0]?.value || '0');
+          const existing = pagesMap.get(path) || { current: 0, previous: 0 };
+
+          if (index % 2 === 0) {
+            existing.current = views;
+          } else {
+            existing.previous = views;
+          }
+          pagesMap.set(path, existing);
+        });
+
+        const sourcesMap = new Map<string, { current: number; previous: number }>();
+        trafficSources.data.rows?.forEach((row, index) => {
+          const source = row?.dimensionValues?.[0]?.value;
+          const medium = row?.dimensionValues?.[1]?.value;
+          const users = parseFloat(row?.metricValues?.[0]?.value || '0');
+
+          const sourceName = this.formatTrafficSource(source, medium);
+          const existing = sourcesMap.get(sourceName) || { current: 0, previous: 0 };
+
+          if (index % 2 === 0) {
+            existing.current += users;
+          } else {
+            existing.previous += users;
+          }
+          sourcesMap.set(sourceName, existing);
+        });
+
+        return {
+          users: currentMetrics[0],
+          usersChange: this.calculateChange(currentMetrics[0], previousMetrics[0]),
+          pageViews: currentMetrics[1],
+          pageViewsChange: this.calculateChange(currentMetrics[1], previousMetrics[1]),
+          avgSessionDuration: currentMetrics[2],
+          avgSessionDurationChange: this.calculateChange(currentMetrics[2], previousMetrics[2]),
+          bounceRate: currentMetrics[3],
+          bounceRateChange: this.calculateChange(currentMetrics[3], previousMetrics[3]),
+          topPages: Array.from(pagesMap.entries())
+            .map(([path, data]) => ({
+              path,
+              pageViews: data.current,
+              change: this.calculateChange(data.current, data.previous),
+            }))
+            .sort((a, b) => b.pageViews - a.pageViews)
+            .slice(0, 5),
+          trafficSources: Array.from(sourcesMap.entries())
+            .map(([source, data]) => ({
+              source,
+              users: data.current,
+              change: this.calculateChange(data.current, data.previous),
+            }))
+            .sort((a, b) => b.users - a.users)
+            .slice(0, 5),
+        };
+      } catch (error) {
+        // This outer catch should not be necessary now, but keeping it for safety
+        console.error('Unexpected error in getAnalytics:', error);
+        if (error instanceof Error) {
+          throw new Error(`Analytics Error: ${error.message}`);
         }
-        sourcesMap.set(sourceName, existing);
-      });
-
-      return {
-        users: currentMetrics[0],
-        usersChange: this.calculateChange(currentMetrics[0], previousMetrics[0]),
-        pageViews: currentMetrics[1],
-        pageViewsChange: this.calculateChange(currentMetrics[1], previousMetrics[1]),
-        avgSessionDuration: currentMetrics[2],
-        avgSessionDurationChange: this.calculateChange(currentMetrics[2], previousMetrics[2]),
-        bounceRate: currentMetrics[3],
-        bounceRateChange: this.calculateChange(currentMetrics[3], previousMetrics[3]),
-        topPages: Array.from(pagesMap.entries())
-          .map(([path, data]) => ({
-            path,
-            pageViews: data.current,
-            change: this.calculateChange(data.current, data.previous),
-          }))
-          .sort((a, b) => b.pageViews - a.pageViews)
-          .slice(0, 5),
-        trafficSources: Array.from(sourcesMap.entries())
-          .map(([source, data]) => ({
-            source,
-            users: data.current,
-            change: this.calculateChange(data.current, data.previous),
-          }))
-          .sort((a, b) => b.users - a.users)
-          .slice(0, 5),
-      };
+        throw new Error('Unknown analytics error occurred');
+      }
     } catch (error) {
-      console.error('Error fetching Google Analytics data:', error);
-      return null;
+      console.error('Error in getAnalytics:', error);
+      if (error instanceof Error) {
+        throw new Error(`Analytics Error: ${error.message}`);
+      }
+      throw new Error('Unknown analytics error occurred');
     }
   }
 }
