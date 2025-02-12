@@ -145,6 +145,8 @@ enum KeywordIntent {
 enum BacklinkType {
   DOFOLLOW
   NOFOLLOW
+  UGC
+  SPONSORED
 }
 
 enum BacklinkStatus {

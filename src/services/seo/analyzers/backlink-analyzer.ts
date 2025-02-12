@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { Backlink, BacklinkStatus, BacklinkType } from '@prisma/client';
+import { parse } from 'node-html-parser';
 
-export interface BacklinkData {
+interface BacklinkData {
   url: string;
   targetUrl: string;
   anchorText: string;
@@ -18,129 +19,160 @@ interface BacklinkGrowth {
   broken: number;
 }
 
+export interface DomainMetrics {
+  age: number;
+  totalBacklinks: number;
+  hasHttps: boolean;
+  totalOutboundLinks: number;
+  hasRobotsTxt: boolean;
+  hasSitemap: boolean;
+}
+
 export class BacklinkAnalyzer {
   private readonly projectId: string;
   private readonly projectDomain: string;
+  private readonly accessToken: string;
 
-  constructor(projectId: string, projectDomain: string) {
+  constructor(projectId: string, projectDomain: string, accessToken: string) {
     this.projectId = projectId;
     this.projectDomain = projectDomain;
+    this.accessToken = accessToken;
   }
 
-  /**
-   * Discovers new backlinks for the project using various methods:
-   * - Google Search Console API (if connected)
-   * - Bing Webmaster Tools API (if connected)
-   * - Web crawling of referring domains
-   */
   async discoverBacklinks(): Promise<BacklinkData[]> {
-    // TODO: Implement actual backlink discovery using APIs
-    // For now, return sample data
+    console.log('Automatic backlink discovery is currently disabled');
     return [];
   }
 
-  /**
-   * Checks the status of existing backlinks
-   */
-  async checkBacklinkStatus(backlink: Pick<Backlink, 'id' | 'url' | 'targetUrl'>) {
+  async getDomainMetrics(domain: string): Promise<DomainMetrics> {
+    try {
+      // Make parallel requests for efficiency
+      const [
+        websiteResponse,
+        robotsResponse,
+        sitemapResponse
+      ] = await Promise.allSettled([
+        axios.get(`https://${domain}`),
+        axios.get(`https://${domain}/robots.txt`),
+        axios.get(`https://${domain}/sitemap.xml`)
+      ]);
+
+      // Get domain age from WHOIS or headers
+      const lastModified = websiteResponse.status === 'fulfilled' 
+        ? websiteResponse.value.headers['last-modified']
+        : null;
+      
+      const domainAge = lastModified
+        ? Math.floor((Date.now() - new Date(lastModified).getTime()) / (1000 * 60 * 60 * 24 * 365))
+        : 1;
+
+      // Parse HTML to count outbound links
+      let totalOutboundLinks = 0;
+      if (websiteResponse.status === 'fulfilled') {
+        const root = parse(websiteResponse.value.data);
+        const links = root.querySelectorAll('a[href^="http"]');
+        totalOutboundLinks = links.length;
+      }
+
+      // Get number of backlinks for this domain from our database
+      const totalBacklinks = await prisma.backlink.count({
+        where: {
+          url: { contains: domain },
+          status: 'ACTIVE'
+        }
+      });
+
+      return {
+        age: domainAge,
+        totalBacklinks,
+        hasHttps: websiteResponse.status === 'fulfilled',
+        totalOutboundLinks,
+        hasRobotsTxt: robotsResponse.status === 'fulfilled',
+        hasSitemap: sitemapResponse.status === 'fulfilled'
+      };
+    } catch (error) {
+      console.error('Failed to get domain metrics:', error);
+      return {
+        age: 1,
+        totalBacklinks: 0,
+        hasHttps: false,
+        totalOutboundLinks: 0,
+        hasRobotsTxt: false,
+        hasSitemap: false
+      };
+    }
+  }
+
+  async calculateDomainAuthority(metrics: DomainMetrics): Promise<number> {
+    try {
+      // Calculate weighted score based on multiple factors
+      let score = 0;
+      
+      // Domain age (max 20 points)
+      score += Math.min(20, metrics.age * 2);
+      
+      // Total backlinks (max 30 points)
+      score += Math.min(30, metrics.totalBacklinks * 0.3);
+      
+      // HTTPS (10 points)
+      score += metrics.hasHttps ? 10 : 0;
+      
+      // Outbound links quality (max 20 points)
+      // More outbound links might indicate a more authoritative site, but with diminishing returns
+      score += Math.min(20, Math.log(metrics.totalOutboundLinks + 1) * 5);
+      
+      // Technical factors (10 points each)
+      score += metrics.hasRobotsTxt ? 10 : 0;
+      score += metrics.hasSitemap ? 10 : 0;
+      
+      // Ensure score is between 1 and 100
+      return Math.max(1, Math.min(100, Math.round(score)));
+    } catch (error) {
+      console.error('Failed to calculate domain authority:', error);
+      return 1;
+    }
+  }
+
+  async checkBacklinkStatus(backlink: Pick<Backlink, 'id' | 'url' | 'targetUrl'>): Promise<void> {
     try {
       const response = await axios.get(backlink.url, {
         timeout: 10000,
         maxRedirects: 5,
       });
 
-      const html = response.data as string;
+      const html = response.data;
       const status = this.validateBacklink(html, backlink.targetUrl);
 
       await this.updateBacklinkStatus(backlink.id, status);
       await this.recordBacklinkHistory(backlink.id, status);
     } catch (error) {
       console.error('Failed to check backlink:', error);
-      // If request fails, mark as broken
       await this.updateBacklinkStatus(backlink.id, 'BROKEN');
       await this.recordBacklinkHistory(backlink.id, 'BROKEN');
     }
   }
 
-  /**
-   * Validates if a backlink is still present in the HTML
-   */
   private validateBacklink(html: string, targetUrl: string): BacklinkStatus {
-    if (html.includes(targetUrl)) {
-      return 'ACTIVE';
-    }
-    return 'LOST';
+    return html.includes(targetUrl) ? 'ACTIVE' : 'LOST';
   }
 
-  /**
-   * Calculates domain authority using various metrics:
-   * - Domain age
-   * - Number of referring domains
-   * - Traffic metrics
-   * - Social signals
-   */
-  private async calculateDomainAuthority(domain: string): Promise<number> {
-    try {
-      // Basic domain authority calculation based on domain age and backlinks
-      const response = await axios.get(`https://${domain}`);
-      const headers = response.headers;
-      
-      // Get domain age from Last-Modified header if available
-      const lastModified = headers['last-modified'];
-      const domainAge = lastModified
-        ? Math.floor((Date.now() - new Date(lastModified).getTime()) / (1000 * 60 * 60 * 24 * 365))
-        : 1;
-
-      // Get number of backlinks for this domain from our database
-      const domainBacklinks = await prisma.backlink.count({
-        where: {
-          url: {
-            contains: domain
-          },
-          status: 'ACTIVE'
-        }
-      });
-
-      // Calculate score based on domain age and number of backlinks
-      // Score = (domain age * 2) + (number of backlinks * 0.5), max 100
-      const score = Math.min(100, (domainAge * 2) + (domainBacklinks * 0.5));
-      return Math.max(1, Math.floor(score)); // Ensure score is at least 1
-
-    } catch (error) {
-      console.error('Failed to calculate domain authority:', error);
-      // Return a base score of 1 if calculation fails
-      return 1;
-    }
-  }
-
-  /**
-   * Updates backlink status in the database
-   */
   private async updateBacklinkStatus(
     backlinkId: string,
     status: BacklinkStatus
-  ) {
-    const domainAuthority = await this.calculateDomainAuthority(
-      new URL(this.projectDomain).hostname
-    );
-
+  ): Promise<void> {
     await prisma.backlink.update({
       where: { id: backlinkId },
       data: {
         status,
-        domainAuthority,
         lastChecked: new Date(),
       },
     });
   }
 
-  /**
-   * Records backlink status history
-   */
   private async recordBacklinkHistory(
     backlinkId: string,
     status: BacklinkStatus
-  ) {
+  ): Promise<void> {
     const backlink = await prisma.backlink.findUnique({
       where: { id: backlinkId },
       select: {
@@ -159,9 +191,6 @@ export class BacklinkAnalyzer {
     });
   }
 
-  /**
-   * Analyzes anchor text distribution
-   */
   async analyzeAnchorTextDistribution(): Promise<Record<string, number>> {
     const backlinks = await prisma.backlink.findMany({
       where: {
@@ -179,9 +208,6 @@ export class BacklinkAnalyzer {
     }, {});
   }
 
-  /**
-   * Gets backlink growth over time
-   */
   async getBacklinkGrowth(days: number = 30): Promise<Record<string, BacklinkGrowth>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -209,8 +235,7 @@ export class BacklinkAnalyzer {
           broken: 0,
         };
       }
-      const status = record.status.toLowerCase() as keyof BacklinkGrowth;
-      acc[date][status]++;
+      acc[date][record.status.toLowerCase() as keyof BacklinkGrowth]++;
       return acc;
     }, {});
   }

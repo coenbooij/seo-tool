@@ -46,14 +46,14 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
     const trimmedGscVerifiedSite = gscVerifiedSite.trim()
 
     if (!trimmedName || !trimmedUrl) {
-      setError('Name and URL are required')
-      return
+      setError('Name and URL are required');
+      return;
     }
 
     // Add https:// if missing
-    let finalUrl = trimmedUrl
+    let finalUrl = trimmedUrl;
     if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-      finalUrl = 'https://' + finalUrl
+      finalUrl = 'https://' + finalUrl;
     }
 
     try {

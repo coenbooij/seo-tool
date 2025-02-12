@@ -1,12 +1,21 @@
 -- CreateEnum
-CREATE TYPE "KeywordIntent" AS ENUM ('INFORMATIONAL', 'NAVIGATIONAL', 'TRANSACTIONAL');
+CREATE TYPE "KeywordIntent" AS ENUM ('INFORMATIONAL', 'NAVIGATIONAL', 'COMMERCIAL', 'TRANSACTIONAL');
+
+-- CreateEnum
+CREATE TYPE "BacklinkType" AS ENUM ('DOFOLLOW', 'NOFOLLOW', 'UGC', 'SPONSORED');
+
+-- CreateEnum
+CREATE TYPE "BacklinkStatus" AS ENUM ('ACTIVE', 'LOST', 'BROKEN');
 
 -- CreateTable
 CREATE TABLE "Project" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "url" TEXT NOT NULL,
+    "domain" TEXT,
     "sitemapUrl" TEXT,
+    "gaPropertyId" TEXT,
+    "gscVerifiedSite" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
@@ -18,12 +27,30 @@ CREATE TABLE "Project" (
 CREATE TABLE "Backlink" (
     "id" TEXT NOT NULL,
     "url" TEXT NOT NULL,
+    "targetUrl" TEXT NOT NULL,
+    "anchorText" TEXT NOT NULL,
+    "domainAuthority" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "type" "BacklinkType" NOT NULL DEFAULT 'DOFOLLOW',
+    "status" "BacklinkStatus" NOT NULL DEFAULT 'ACTIVE',
+    "firstSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastChecked" TIMESTAMP(3),
     "projectId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "authority" DOUBLE PRECISION NOT NULL,
+    "authority" DOUBLE PRECISION NOT NULL DEFAULT 0,
 
     CONSTRAINT "Backlink_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BacklinkHistory" (
+    "id" TEXT NOT NULL,
+    "backlinkId" TEXT NOT NULL,
+    "status" "BacklinkStatus" NOT NULL DEFAULT 'ACTIVE',
+    "domainAuthority" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "checkedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BacklinkHistory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -34,15 +61,25 @@ CREATE TABLE "Keyword" (
     "searchVolume" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "difficulty" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "competition" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "cpc" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "currentRank" DOUBLE PRECISION,
-    "density" DOUBLE PRECISION,
-    "priority" DOUBLE PRECISION,
-    "notes" TEXT,
-    "lastChecked" TIMESTAMP(3),
+    "currentRank" INTEGER NOT NULL DEFAULT 0,
+    "bestRank" INTEGER NOT NULL DEFAULT 0,
+    "url" TEXT,
     "projectId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "keywordGroupId" TEXT,
 
     CONSTRAINT "Keyword_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "KeywordHistory" (
+    "id" TEXT NOT NULL,
+    "keywordId" TEXT NOT NULL,
+    "rank" INTEGER NOT NULL DEFAULT 0,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "KeywordHistory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -50,6 +87,8 @@ CREATE TABLE "KeywordGroup" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "KeywordGroup_pkey" PRIMARY KEY ("id")
 );
@@ -68,8 +107,6 @@ CREATE TABLE "Account" (
     "scope" TEXT,
     "id_token" TEXT,
     "session_state" TEXT,
-    "oauth_token_secret" TEXT,
-    "oauth_token" TEXT,
 
     CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
 );
@@ -102,15 +139,6 @@ CREATE TABLE "VerificationToken" (
     "expires" TIMESTAMP(3) NOT NULL
 );
 
--- CreateTable
-CREATE TABLE "_KeywordToKeywordGroup" (
-    "A" TEXT NOT NULL,
-    "B" TEXT NOT NULL
-);
-
--- CreateIndex
-CREATE UNIQUE INDEX "Keyword_projectId_keyword_key" ON "Keyword"("projectId", "keyword");
-
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
 
@@ -126,12 +154,6 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 -- CreateIndex
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
--- CreateIndex
-CREATE UNIQUE INDEX "_KeywordToKeywordGroup_AB_unique" ON "_KeywordToKeywordGroup"("A", "B");
-
--- CreateIndex
-CREATE INDEX "_KeywordToKeywordGroup_B_index" ON "_KeywordToKeywordGroup"("B");
-
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -139,7 +161,16 @@ ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "Backlink" ADD CONSTRAINT "Backlink_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "BacklinkHistory" ADD CONSTRAINT "BacklinkHistory_backlinkId_fkey" FOREIGN KEY ("backlinkId") REFERENCES "Backlink"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Keyword" ADD CONSTRAINT "Keyword_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Keyword" ADD CONSTRAINT "Keyword_keywordGroupId_fkey" FOREIGN KEY ("keywordGroupId") REFERENCES "KeywordGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KeywordHistory" ADD CONSTRAINT "KeywordHistory_keywordId_fkey" FOREIGN KEY ("keywordId") REFERENCES "Keyword"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KeywordGroup" ADD CONSTRAINT "KeywordGroup_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -149,9 +180,3 @@ ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "_KeywordToKeywordGroup" ADD CONSTRAINT "_KeywordToKeywordGroup_A_fkey" FOREIGN KEY ("A") REFERENCES "Keyword"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "_KeywordToKeywordGroup" ADD CONSTRAINT "_KeywordToKeywordGroup_B_fkey" FOREIGN KEY ("B") REFERENCES "KeywordGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;

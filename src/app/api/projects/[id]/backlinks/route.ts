@@ -1,30 +1,29 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { prisma } from '@/lib/prisma'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { NextResponse, NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { BacklinkAnalyzer } from '@/services/seo/analyzers/backlink-analyzer'
+import { getToken } from "next-auth/jwt"
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const token = await getToken({ req: request});
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized - Missing token' }, { status: 401 });
     }
 
     const params = await context.params
     const { id } = params
+    if (!token.sub) {
+      return NextResponse.json({ error: 'Unauthorized - Missing user ID' }, { status: 401 });
+    }
 
     const project = await prisma.project.findFirst({
       where: {
         id,
-        userId: session.user.id
-      },
-      include: {
-        backlinks: true
+        userId: token.sub as string
       }
     })
 
@@ -32,8 +31,18 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    // Initialize backlink analyzer
-    const analyzer = new BacklinkAnalyzer(project.id, project.domain || '')
+    // Initialize analyzer
+    const analyzer = new BacklinkAnalyzer(project.id, project.domain || '', token.accessToken as string);
+
+    // Get all backlinks
+    const allBacklinks = await prisma.backlink.findMany({
+      where: {
+        projectId: project.id
+      },
+      orderBy: {
+        domainAuthority: 'desc'
+      }
+    })
 
     // Get backlink growth data
     const backlinkGrowth = await analyzer.getBacklinkGrowth(30) // Last 30 days
@@ -41,15 +50,13 @@ export async function GET(
     // Get anchor text distribution
     const anchorTextDistribution = await analyzer.analyzeAnchorTextDistribution()
 
-    // Sort backlinks by domainAuthority
-    const sortedBacklinks = project.backlinks.sort((a, b) => b.domainAuthority - a.domainAuthority)
-
     return NextResponse.json({
-      backlinks: sortedBacklinks,
+      backlinks: allBacklinks,
       metrics: {
         anchorTextDistribution,
         backlinkGrowth
-      }
+      },
+      discovered: 0  // Automatic discovery disabled
     })
   } catch (error) {
     console.error('Error fetching backlinks:', error)
@@ -61,13 +68,13 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const token = await getToken({ req: request});
 
-    if (!session?.user?.id) {
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -87,7 +94,7 @@ export async function POST(
     const project = await prisma.project.findFirst({
       where: {
         id,
-        userId: session.user.id
+        userId: token.sub as string
       }
     })
 
@@ -95,25 +102,48 @@ export async function POST(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    // Create new backlink
-    const backlink = await prisma.backlink.create({
-      data: {
-        url: body.url,
-        targetUrl: body.targetUrl,
-        anchorText: body.anchorText,
-        type: body.type || 'DOFOLLOW',
-        status: 'ACTIVE',
-        projectId: id,
-        authority: 0, // Will be calculated by analyzer
-        domainAuthority: 0, // Will be calculated by analyzer
-      }
-    })
+    try {
+      // Initialize analyzer
+      const analyzer = new BacklinkAnalyzer(project.id, project.domain || '', token.accessToken as string);
 
-    // Initialize analyzer and calculate domain authority
-    const analyzer = new BacklinkAnalyzer(project.id, project.domain || '')
-    await analyzer.checkBacklinkStatus(backlink)
+      // Calculate domain authority for the new backlink
+      const domain = new URL(body.url).hostname;
+      const metrics = await analyzer.getDomainMetrics(domain);
+      const domainAuthority = await analyzer.calculateDomainAuthority(metrics);
 
-    return NextResponse.json(backlink)
+      // Create new backlink
+      const backlink = await prisma.backlink.create({
+        data: {
+          url: body.url,
+          targetUrl: body.targetUrl,
+          anchorText: body.anchorText,
+          type: body.type || 'DOFOLLOW',
+          status: 'ACTIVE',
+          projectId: id,
+          domainAuthority,
+          authority: domainAuthority, // Set authority equal to domainAuthority
+          firstSeen: new Date(),
+          lastChecked: new Date()
+        }
+      });
+
+      // Create initial history record
+      await prisma.backlinkHistory.create({
+        data: {
+          backlinkId: backlink.id,
+          status: 'ACTIVE',
+          domainAuthority,
+        }
+      });
+
+      return NextResponse.json(backlink);
+    } catch (error) {
+      console.error('Error processing backlink:', error);
+      return NextResponse.json(
+        { error: 'Invalid URL or domain not accessible' },
+        { status: 400 }
+      );
+    }
   } catch (error) {
     console.error('Error creating backlink:', error)
     return NextResponse.json(
@@ -124,16 +154,15 @@ export async function POST(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const token = await getToken({ req: request});
 
-    if (!session?.user?.id) {
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
     const params = await context.params
     const { id } = params
     const { searchParams } = new URL(request.url)
@@ -150,7 +179,7 @@ export async function DELETE(
     const project = await prisma.project.findFirst({
       where: {
         id,
-        userId: session.user.id
+        userId: token.sub as string
       }
     })
 
