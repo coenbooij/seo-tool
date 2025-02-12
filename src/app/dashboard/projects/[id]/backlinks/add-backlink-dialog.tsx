@@ -117,7 +117,7 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="h-9 px-4">
+        <Button size="sm" className="h-8 px-6 font-medium bg-indigo-600 hover:bg-indigo-500 text-white">
           Add Backlink
         </Button>
       </DialogTrigger>
@@ -129,14 +129,19 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="url" className="text-sm font-medium">Source URL</label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-500" />
+              <TooltipProvider delayDuration={200}>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0 text-gray-500 hover:text-gray-900"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>The URL where the backlink is located.<br/>
-                    Protocol (http/https) will be added if missing.</p>
+                    <p>The URL where the backlink is located</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -152,10 +157,16 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="targetUrl" className="text-sm font-medium">Target URL</label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-500" />
+              <TooltipProvider delayDuration={200}>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0 text-gray-500 hover:text-gray-900"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Your page that is being linked to.<br/>
@@ -175,10 +186,16 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="anchorText" className="text-sm font-medium">Anchor Text</label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-500" />
+              <TooltipProvider delayDuration={200}>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0 text-gray-500 hover:text-gray-900"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>The clickable text of the backlink.<br/>
@@ -198,10 +215,16 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="type" className="text-sm font-medium">Link Type</label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-500" />
+              <TooltipProvider delayDuration={200}>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0 text-gray-500 hover:text-gray-900"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>DOFOLLOW: Passes SEO value<br/>
@@ -236,7 +259,7 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
             >
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} size="sm" className="h-8 px-6 font-medium bg-indigo-600 hover:bg-indigo-500 text-white">
               {isLoading ? 'Adding...' : 'Add Backlink'}
             </Button>
           </div>

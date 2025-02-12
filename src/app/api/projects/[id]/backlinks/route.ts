@@ -1,7 +1,9 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { BacklinkAnalyzer } from '@/services/seo/analyzers/backlink-analyzer'
+import { BacklinkStatus } from '@prisma/client';
 import { getToken } from "next-auth/jwt"
+import axios from 'axios';
 
 export async function GET(
   request: NextRequest,
@@ -103,25 +105,67 @@ export async function POST(
     }
 
     try {
-      // Initialize analyzer
+      console.log('Starting backlink validation process...');
+      
+      // Initialize analyzer for both metrics and validation
       const analyzer = new BacklinkAnalyzer(project.id, project.domain || '', token.accessToken as string);
 
       // Calculate domain authority for the new backlink
       const domain = new URL(body.url).hostname;
+      console.log('Calculating metrics for domain:', domain);
+      
       const metrics = await analyzer.getDomainMetrics(domain);
       const domainAuthority = await analyzer.calculateDomainAuthority(metrics);
+      console.log('Domain Authority:', domainAuthority);
 
-      // Create new backlink
+      // Validate the backlink immediately
+      console.log('Validating backlink...');
+      console.log('Source URL:', body.url);
+      console.log('Target URL:', body.targetUrl);
+
+      let initialStatus: BacklinkStatus = 'ACTIVE';
+      try {
+        const response = await axios.get(body.url, {
+          timeout: 10000,
+          maxRedirects: 5,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; SEOTool/1.0; +http://seo-tool.com)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+            'Accept-Language': 'en-US,en;q=0.9'
+          },
+          responseType: 'text'
+        });
+        
+        console.log('Successfully fetched source URL');
+        console.log('Response status:', response.status);
+        console.log('Content length:', response.data.length);
+        
+        const status = analyzer.validateBacklink(response.data, body.targetUrl);
+        initialStatus = status;
+        console.log('Validation result:', status);
+      } catch (error) {
+        console.error('Error validating new backlink:', error);
+        if (axios.isAxiosError(error) && error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response headers:', error.response.headers);
+        } else if (axios.isAxiosError(error) && error.request) {
+          console.error('No response received');
+        }
+        initialStatus = 'BROKEN';
+      }
+
+      // Create new backlink with validated status
+      console.log('Creating backlink with status:', initialStatus);
       const backlink = await prisma.backlink.create({
         data: {
           url: body.url,
           targetUrl: body.targetUrl,
           anchorText: body.anchorText,
           type: body.type || 'DOFOLLOW',
-          status: 'ACTIVE',
+          status: initialStatus,
           projectId: id,
           domainAuthority,
-          authority: domainAuthority, // Set authority equal to domainAuthority
+          authority: domainAuthority,
           firstSeen: new Date(),
           lastChecked: new Date()
         }
@@ -131,10 +175,12 @@ export async function POST(
       await prisma.backlinkHistory.create({
         data: {
           backlinkId: backlink.id,
-          status: 'ACTIVE',
+          status: initialStatus,
           domainAuthority,
         }
       });
+
+      console.log('Backlink created with status:', initialStatus);
 
       return NextResponse.json(backlink);
     } catch (error) {

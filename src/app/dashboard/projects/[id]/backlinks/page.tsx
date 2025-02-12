@@ -212,31 +212,34 @@ export default function BacklinksPage() {
               A list of all backlinks pointing to your website
             </p>
           </div>
-          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center gap-4">
-            <RecheckAllButton 
-              projectId={params.id as string}
-              backlinks={backlinks}
-              onStatusesUpdated={() => mutate()}
-            />
-            <div className="flex items-center gap-2">
-              <select
-                id="backlink-filter"
-                name="backlink-filter"
-                aria-label="Filter backlinks"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value as BacklinkStatus | 'all')}
-                className="block rounded-md border-gray-300 py-1.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 w-32 text-center h-8"
-              >
-                <option value="all">All Links</option>
-                <option value="ACTIVE">Active</option>
-                <option value="LOST">Lost</option>
-                <option value="BROKEN">Broken</option>
-              </select>
-            </div>
-            <AddBacklinkDialog 
-              projectId={params.id as string} 
-              onBacklinkAdded={() => mutate()} 
-            />
+          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center gap-2">
+              <div className="flex items-center gap-2 mr-4">
+                <RecheckAllButton
+                  projectId={params.id as string}
+                  backlinks={backlinks}
+                  onStatusesUpdated={() => mutate()}
+                />
+                <select
+                  id="backlink-filter"
+                  name="backlink-filter"
+                  aria-label="Filter backlinks"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value as BacklinkStatus | 'all')}
+                  className="block rounded-md border-gray-300 py-1.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 w-32 text-center h-8"
+                >
+                  <option value="all">All Links</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="LOST">Lost</option>
+                  <option value="BROKEN">Broken</option>
+                </select>
+                
+              </div>
+              <div>
+                <AddBacklinkDialog
+                  projectId={params.id as string}
+                  onBacklinkAdded={() => mutate()}
+                />
+              </div>
           </div>
         </div>
       </div>
