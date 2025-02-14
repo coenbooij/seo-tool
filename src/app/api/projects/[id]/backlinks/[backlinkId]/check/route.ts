@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id, backlinkId } = context.params
+    const { id, backlinkId } = await Promise.resolve(context.params)
 
     // Check project access
     const project = await prisma.project.findFirst({
