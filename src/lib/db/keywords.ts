@@ -1,50 +1,7 @@
-import { KeywordIntent } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { KeywordData, KeywordSource, ContentStatus } from '@/app/dashboard/projects/[id]/keywords/types';
 
-export interface KeywordData {
-  id: string;
-  keyword: string;
-  intent: KeywordIntent;
-  searchVolume: number;
-  difficulty: number;
-  competition: number;
-  cpc: number;
-  currentRank: number | null;
-  density: number | null;
-  priority: number | null;
-  notes: string | null;
-  lastChecked: Date | null;
-  projectId: string;
-  groups: {
-    id: string;
-    name: string;
-  }[];
-}
-
-export interface SerpPosition {
-  position: number;
-  url: string;
-  title: string;
-}
-
-export interface KeywordHistoryData {
-  date: Date;
-  position: number;
-}
-
-export const INITIAL_KEYWORD_DATA: Partial<KeywordData> = {
-  searchVolume: 0,
-  difficulty: 0,
-  competition: 0,
-  cpc: 0,
-  currentRank: null,
-  density: null,
-  priority: null,
-  notes: null,
-  lastChecked: null,
-};
-
-export async function getProjectKeywords(projectId: string) {
+export async function getProjectKeywords(projectId: string): Promise<KeywordData[]> {
   const keywords = await prisma.keyword.findMany({
     where: {
       projectId,
@@ -63,84 +20,136 @@ export async function getProjectKeywords(projectId: string) {
         take: 1,
       },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
   });
 
-  // Transform the response to match the expected interface
+  // Transform the data to match KeywordData type
   return keywords.map(keyword => ({
-    ...keyword,
-    groups: keyword.keywordGroup ? [keyword.keywordGroup] : [],
+    id: keyword.id,
+    keyword: keyword.keyword,
+    intent: keyword.intent,
+    searchVolume: keyword.searchVolume,
+    difficulty: keyword.difficulty,
+    competition: keyword.competition,
+    cpc: 0, // Default value since it's not in the database yet
+    currentRank: keyword.currentRank,
+    density: null, // Default value since it's not in the database yet
+    priority: null, // Default value since it's not in the database yet
+    notes: null, // Default value since it's not in the database yet
+    lastChecked: keyword.history[0]?.date || null,
+    projectId: keyword.projectId,
+    position: keyword.currentRank,
+    groups: keyword.keywordGroup ? [{ 
+      id: keyword.keywordGroup.id, 
+      name: keyword.keywordGroup.name 
+    }] : [],
+    source: KeywordSource.MANUAL, // Default value since it's not in the database yet
+    serpFeatures: [], // Default value since it's not in the database yet
+    contentStatus: ContentStatus.NOT_STARTED, // Default value since it's not in the database yet
+    contentPriority: 0, // Default value since it's not in the database yet
   }));
 }
 
-export async function getKeywordHistory(keywordId: string) {
-  const history = await prisma.keywordHistory.findMany({
-    where: {
-      keywordId,
-    },
-    orderBy: {
-      date: 'asc',
-    },
-  });
+export async function addKeywords(projectId: string, keywords: KeywordData[]): Promise<KeywordData[]> {
+  const createdKeywords = await prisma.$transaction(
+    keywords.map(keyword =>
+      prisma.keyword.create({
+        data: {
+          keyword: keyword.keyword,
+          intent: keyword.intent,
+          searchVolume: keyword.searchVolume,
+          difficulty: keyword.difficulty,
+          competition: keyword.competition,
+          currentRank: 0,
+          bestRank: 0,
+          projectId,
+        },
+        include: {
+          keywordGroup: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      })
+    )
+  );
 
-  return history;
+  return createdKeywords.map(keyword => ({
+    id: keyword.id,
+    keyword: keyword.keyword,
+    intent: keyword.intent,
+    searchVolume: keyword.searchVolume,
+    difficulty: keyword.difficulty,
+    competition: keyword.competition,
+    cpc: 0,
+    currentRank: keyword.currentRank,
+    density: null,
+    priority: null,
+    notes: null,
+    lastChecked: null,
+    projectId: keyword.projectId,
+    position: keyword.currentRank,
+    groups: keyword.keywordGroup ? [{ 
+      id: keyword.keywordGroup.id, 
+      name: keyword.keywordGroup.name 
+    }] : [],
+    source: KeywordSource.MANUAL,
+    serpFeatures: [],
+    contentStatus: ContentStatus.NOT_STARTED,
+    contentPriority: 0,
+  }));
 }
 
-export async function updateKeywordMetrics(keywordId: string, metrics: {
-  currentRank?: number;
-  searchVolume?: number;
-  difficulty?: number;
-  competition?: number;
-  cpc?: number;
-  density?: number;
-}) {
+export async function updateKeyword(
+  projectId: string, 
+  keywordId: string, 
+  data: Partial<KeywordData>
+): Promise<KeywordData> {
   const keyword = await prisma.keyword.update({
     where: {
       id: keywordId,
-    },
-    data: metrics,
-  });
-
-  // Create history entry for rank changes
-  if (typeof metrics.currentRank === 'number') {
-    await prisma.keywordHistory.create({
-      data: {
-        keywordId,
-        rank: metrics.currentRank,
-        date: new Date(),
-      },
-    });
-  }
-
-  return keyword;
-}
-
-export async function addKeywordToGroup(keywordId: string, groupId: string) {
-  return prisma.keyword.update({
-    where: {
-      id: keywordId,
+      projectId,
     },
     data: {
+      intent: data.intent,
+      searchVolume: data.searchVolume,
+      difficulty: data.difficulty,
+      competition: data.competition,
+      currentRank: data.currentRank || 0,
+    },
+    include: {
       keywordGroup: {
-        connect: {
-          id: groupId,
+        select: {
+          id: true,
+          name: true,
         },
       },
     },
   });
-}
 
-export async function removeKeywordFromGroup(keywordId: string, groupId: string) {
-  return prisma.keyword.update({
-    where: {
-      id: keywordId,
-    },
-    data: {
-      keywordGroup: {
-        disconnect: true,
-      },
-    },
-  });
+  return {
+    id: keyword.id,
+    keyword: keyword.keyword,
+    intent: keyword.intent,
+    searchVolume: keyword.searchVolume,
+    difficulty: keyword.difficulty,
+    competition: keyword.competition,
+    cpc: 0,
+    currentRank: keyword.currentRank,
+    density: null,
+    priority: null,
+    notes: null,
+    lastChecked: null,
+    projectId: keyword.projectId,
+    position: keyword.currentRank,
+    groups: keyword.keywordGroup ? [{ 
+      id: keyword.keywordGroup.id, 
+      name: keyword.keywordGroup.name 
+    }] : [],
+    source: KeywordSource.MANUAL,
+    serpFeatures: [],
+    contentStatus: ContentStatus.NOT_STARTED,
+    contentPriority: 0,
+  };
 }

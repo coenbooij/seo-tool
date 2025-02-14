@@ -62,13 +62,27 @@ model Keyword {
   currentRank  Int           @default(0)
   bestRank     Int           @default(0)
   url          String?
-  projectId    String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  history      KeywordHistory[]
+  source       KeywordSource @default(MANUAL)
+  seasonality  Json?
+  serpFeatures String[]
+  contentStatus ContentStatus @default(NOT_STARTED)
+  contentPriority Int?       @default(0)
+  contentType   String?
+  contentBrief  String?
+  clusterName   String?
+  clusterScore  Float?       @default(0)
+  parentKeyword String?
+  trends        Json?
+  notes         String?
+  projectId     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  history       KeywordHistory[]
   keywordGroupId String?
-  keywordGroup KeywordGroup?  @relation(fields: [keywordGroupId], references: [id], onDelete: SetNull)
+  keywordGroup  KeywordGroup? @relation(fields: [keywordGroupId], references: [id], onDelete: SetNull)
+
+  @@index([clusterName])
 }
 
 model KeywordHistory {
@@ -140,6 +154,23 @@ enum KeywordIntent {
   NAVIGATIONAL
   COMMERCIAL
   TRANSACTIONAL
+}
+
+enum KeywordSource {
+  BRAINSTORM
+  GSC
+  ANALYTICS
+  COMPETITOR
+  TOOL
+  MANUAL
+}
+
+enum ContentStatus {
+  NOT_STARTED
+  PLANNED
+  IN_PROGRESS
+  PUBLISHED
+  NEEDS_UPDATE
 }
 
 enum BacklinkType {

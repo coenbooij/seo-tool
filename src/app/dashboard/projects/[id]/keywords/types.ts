@@ -1,4 +1,34 @@
-import { KeywordIntent } from '@prisma/client';
+import { KeywordIntent as PrismaKeywordIntent } from '@prisma/client';
+
+export type KeywordIntent = PrismaKeywordIntent;
+
+export enum KeywordSource {
+  BRAINSTORM = 'BRAINSTORM',
+  GSC = 'GSC',
+  ANALYTICS = 'ANALYTICS',
+  COMPETITOR = 'COMPETITOR',
+  TOOL = 'TOOL',
+  MANUAL = 'MANUAL'
+}
+
+export enum ContentStatus {
+  NOT_STARTED = 'NOT_STARTED',
+  PLANNED = 'PLANNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  PUBLISHED = 'PUBLISHED',
+  NEEDS_UPDATE = 'NEEDS_UPDATE'
+}
+
+export interface SeasonalityData {
+  monthly: number[];
+  trend: 'up' | 'down' | 'stable';
+  peakMonths: number[];
+}
+
+export interface TrendData {
+  dates: string[];
+  values: number[];
+}
 
 export type KeywordData = {
   id: string;
@@ -19,7 +49,27 @@ export type KeywordData = {
     id: string;
     name: string;
   }[];
+  source: KeywordSource;
+  seasonality?: SeasonalityData;
+  serpFeatures: string[];
+  contentStatus: ContentStatus;
+  contentPriority: number;
+  contentType?: string;
+  contentBrief?: string;
+  clusterName?: string;
+  clusterScore?: number;
+  parentKeyword?: string;
+  trends?: TrendData;
 };
+
+export interface ClusterResponse {
+  clusters: Array<{
+    name: string;
+    keywords: string[];
+    mainIntent: KeywordIntent;
+    score: number;
+  }>;
+}
 
 export interface FilterCriteria {
   intent?: KeywordIntent[];
@@ -29,6 +79,8 @@ export interface FilterCriteria {
   position?: [number, number];
   priority?: [number, number];
   search?: string;
+  source?: KeywordSource[];
+  contentStatus?: ContentStatus[];
 }
 
 export const DEFAULT_FILTER_CRITERIA: FilterCriteria = {
@@ -60,18 +112,20 @@ export interface KeywordAnalyticsData {
     position: number;
     url: string;
     title: string;
+    features: string[];
   }[];
 }
 
 export interface CompetitorGapAnalysisProps {
+  projectId: string;
   keywords: KeywordData[];
-  onAddKeywords: (keywords: string[]) => Promise<void>;
+  onAddKeywords: (keywords: KeywordData[]) => Promise<void>;
 }
 
 export interface AddKeywordsDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (keywords: string[]) => Promise<void>;
+  onSubmit: (keywords: KeywordData[]) => Promise<void>;
 }
 
 export interface KeywordDetailsComponentProps {
@@ -121,9 +175,16 @@ export interface KeywordActionToolbarProps {
 
 export interface KeywordTableProps {
   keywords: KeywordData[];
-  selectedKeywords: Set<string>;
-  onKeywordSelect: (keyword: KeywordData | null) => void;
-  onKeywordDelete: (keyword: string) => Promise<void>;
+  onKeywordDelete: (keyword: string) => void;
+  onSortChange?: (columnKey: string) => void;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface KeywordSectionProps {
+  projectId: string;
+  keywords: KeywordData[];
+  onKeywordsUpdate: (keywords: KeywordData[]) => void;
 }
 
 export type KeywordMetric = 
