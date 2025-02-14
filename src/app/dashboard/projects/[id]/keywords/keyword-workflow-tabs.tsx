@@ -47,8 +47,8 @@ export function KeywordWorkflowTabs({
                 "data-[state=inactive]:hover:bg-gray-100",
                 "data-[state=inactive]:text-gray-700",
                 "data-[state=active]:border-primary",
-                "data-[state=active]:bg-primary/5",
-                "data-[state=active]:text-primary",
+                "data-[state=active]:bg-primary-200",
+                "data-[state=active]:text-purple-600",
               )}
             >
               <div className="flex items-start gap-2">

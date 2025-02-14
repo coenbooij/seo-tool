@@ -97,7 +97,7 @@ export function AddKeywordsDialog({
             <Button
               onClick={handleSubmit}
               disabled={!keywordsText.trim() || isSubmitting}
-              className="bg-primary hover:bg-primary/90"
+              className="bg-indigo-600 hover:bg-indigo-400 text-white"
             >
               {isSubmitting ? 'Adding...' : 'Add Keywords'}
             </Button>

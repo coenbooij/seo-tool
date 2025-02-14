@@ -61,7 +61,7 @@ export function KeywordsClient({ projectId, initialKeywords = [] }: KeywordsClie
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-primary hover:bg-primary/90"
+            className="hover:bg-indigo-400 bg-indigo-600 text-white"
           >
             Add Keywords
           </Button>
