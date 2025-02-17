@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -133,7 +132,7 @@ export function KeywordSerpSection({
             <div className="space-y-6">
               <Card>
                 <CardContent className="p-4">
-                  <h3 className="font-medium mb-4">SERP Results for "{selectedKeyword.keyword}"</h3>
+                  <h3 className="font-medium mb-4">SERP Results for &quot;{selectedKeyword.keyword}&quot;</h3>
                   {isLoading ? (
                     <div className="text-center py-4">Loading SERP data...</div>
                   ) : (

@@ -2,7 +2,7 @@ import { JSDOM } from 'jsdom'
 import type { Analyzer, ContentMetrics, AnalyzerResult, MetaTag } from '../types'
 
 export class ContentAnalyzer implements Analyzer {
-  async analyze(html: string, url: string): Promise<ContentMetrics> {
+  async analyze(html: string): Promise<ContentMetrics> {
     const dom = new JSDOM(html)
     const document = dom.window.document
 

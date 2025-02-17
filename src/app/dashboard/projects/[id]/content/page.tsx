@@ -133,7 +133,7 @@ export default function ContentPage() {
         console.error("Invalid sitemap URL:", data.sitemapUrl)
       }
     }
-  }, [data?.sitemapUrl])
+  }, [data?.sitemapUrl, currentSitemapUrl])
 
   const table = useReactTable({
     data: data?.pages || [],

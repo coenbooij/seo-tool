@@ -26,7 +26,7 @@ export function KeywordGroupManager({
 
   React.useEffect(() => {
     fetchGroups();
-  }, [projectId]);
+  }, [fetchGroups, projectId]);
 
   React.useEffect(() => {
     if (selectedGroup) {
@@ -38,7 +38,7 @@ export function KeywordGroupManager({
     }
   }, [keywords, selectedGroup]);
 
-  const fetchGroups = async () => {
+  const fetchGroups = React.useCallback(async () => {
     try {
       const response = await fetch(`/api/projects/${projectId}/keyword-groups`);
       if (!response.ok) {
@@ -58,7 +58,11 @@ export function KeywordGroupManager({
         variant: 'destructive',
       });
     }
-  };
+  }, [projectId, toast]);
+  
+  React.useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
 
   const createGroup = async () => {
     if (!newGroupName.trim()) {
