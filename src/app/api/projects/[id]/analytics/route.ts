@@ -1,6 +1,10 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { getServerSession, Session } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getServerSession, Session as NextAuthSession } from 'next-auth';
+
+interface Session extends NextAuthSession {
+  accessToken?: string;
+}
+import authOptions from '@/lib/authOptions';
 import { prisma } from '@/lib/prisma';
 import GoogleAnalyticsService, { TimeSpan } from '@/services/seo/google-analytics-service';
 import GoogleSearchConsoleService from '@/services/seo/google-search-console-service';
@@ -17,7 +21,7 @@ function getDates(timeSpan: string) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }>}
 ) {
     try {
       // Get and refresh token if necessary
@@ -34,7 +38,7 @@ export async function GET(
         session.accessToken = token;
       }
 
-    const projectId = params.id;
+    const projectId = (await params).id;
 
     // Get project with validation
     const project = await prisma.project.findUnique({
@@ -120,3 +124,4 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch project analytics', message: 'An unexpected error occurred while fetching analytics data.' }, { status: 500 });
   }
 }
+

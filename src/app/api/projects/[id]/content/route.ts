@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import authOptions from '@/lib/authOptions'
 import { ContentAnalyzer } from '@/services/seo/analyzers/content-analyzer'
 import { XMLParser } from 'fast-xml-parser'
 import { ContentMetrics, Issue } from '@/services/seo/types'
@@ -112,14 +112,17 @@ async function analyzePage(url: string): Promise<PageAnalysis> {
         description: '',
         descriptionLength: 0,
         h1Count: 0,
+        h1Tags: [],
         h2Count: 0,
+        h2Tags: [],
         imageCount: 0,
         imagesWithoutAlt: 0,
         wordCount: 0,
         hasCanonical: false,
         hasRobots: false,
         hasViewport: false,
-        hasSchema: false
+        hasSchema: false,
+        metaTags: []
       },
       issues: [{
         type: 'error',

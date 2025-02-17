@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -27,20 +27,30 @@ const getErrorMessage = (error: string) => {
   }
 }
 
-export default function AuthError() {
+// Separate component to handle URL parameters
+function ErrorHandler({ onError }: { onError: (message: string) => void }) {
   const searchParams = useSearchParams()
-  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     const error = searchParams.get('error')
     if (error) {
-      setErrorMessage(getErrorMessage(error))
+      onError(getErrorMessage(error))
     }
-  }, [searchParams])
+  }, [searchParams, onError])
+
+  return null
+}
+
+export default function AuthError() {
+  const [errorMessage, setErrorMessage] = useState('')
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        <Suspense fallback={null}>
+          <ErrorHandler onError={setErrorMessage} />
+        </Suspense>
+
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Authentication Error

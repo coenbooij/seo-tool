@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string; groupId: string } }
+  { params }: { params: Promise<{ id: string; groupId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +13,7 @@ export async function POST(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { id: projectId, groupId } = params;
+    const { id: projectId, groupId } = await params;
     const { keyword: keywordTerm } = await request.json();
 
     if (!keywordTerm) {
@@ -55,7 +55,6 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; groupId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -63,9 +62,11 @@ export async function DELETE(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { id: projectId, groupId } = params;
-    const { searchParams } = new URL(request.url);
-    const keywordTerm = searchParams.get('keyword');
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.indexOf('projects') + 1];
+    const groupId = pathParts[pathParts.indexOf('keyword-groups') + 1];
+    const { keyword: keywordTerm } = await request.json();
 
     if (!keywordTerm) {
       return new NextResponse('Keyword term is required', { status: 400 });

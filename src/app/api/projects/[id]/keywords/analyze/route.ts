@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 import { prisma } from '@/lib/prisma';
 import { KeywordSource } from '@/app/dashboard/projects/[id]/keywords/types';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -14,7 +14,7 @@ export async function POST(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const projectId = params.id;
+  const projectId = (await (params)).id;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({

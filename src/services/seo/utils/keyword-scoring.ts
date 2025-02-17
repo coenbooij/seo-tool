@@ -7,6 +7,7 @@ interface ScoringWeights {
     [KeywordIntent.TRANSACTIONAL]: number
     [KeywordIntent.INFORMATIONAL]: number
     [KeywordIntent.NAVIGATIONAL]: number
+    [KeywordIntent.COMMERCIAL]: number
   }
   currentRankBonus: {
     topThree: number
@@ -21,7 +22,8 @@ const DEFAULT_WEIGHTS: ScoringWeights = {
   intentMultiplier: {
     [KeywordIntent.TRANSACTIONAL]: 1.5,
     [KeywordIntent.INFORMATIONAL]: 1.0,
-    [KeywordIntent.NAVIGATIONAL]: 0.8
+    [KeywordIntent.NAVIGATIONAL]: 0.8,
+    [KeywordIntent.COMMERCIAL]: 1.3
   },
   currentRankBonus: {
     topThree: 1.3,

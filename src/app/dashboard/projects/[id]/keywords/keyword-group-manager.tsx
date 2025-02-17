@@ -4,13 +4,13 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeywordData, KeywordGroup } from './types';
+import { KeywordData, KeywordGroupData } from './types';
 import { useToast } from '@/components/ui/use-toast';
 
 interface KeywordGroupManagerProps {
   projectId: string;
   keywords: KeywordData[];
-  onGroupChange: (group: KeywordGroup) => void;
+  onGroupChange: (group: KeywordGroupData) => void;
 }
 
 export function KeywordGroupManager({
@@ -18,25 +18,11 @@ export function KeywordGroupManager({
   keywords,
   onGroupChange,
 }: KeywordGroupManagerProps) {
-  const [groups, setGroups] = React.useState<KeywordGroup[]>([]);
-  const [selectedGroup, setSelectedGroup] = React.useState<KeywordGroup | null>(null);
+  const [groups, setGroups] = React.useState<KeywordGroupData[]>([]);
+  const [selectedGroup, setSelectedGroup] = React.useState<KeywordGroupData | null>(null);
   const [newGroupName, setNewGroupName] = React.useState('');
   const [availableKeywords, setAvailableKeywords] = React.useState<KeywordData[]>([]);
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups, projectId]);
-
-  React.useEffect(() => {
-    if (selectedGroup) {
-      // Update available keywords by filtering out keywords already in the selected group
-      const groupKeywords = new Set(selectedGroup.keywords.map(k => k.keyword));
-      setAvailableKeywords(keywords.filter(k => !groupKeywords.has(k.keyword)));
-    } else {
-      setAvailableKeywords(keywords);
-    }
-  }, [keywords, selectedGroup]);
 
   const fetchGroups = React.useCallback(async () => {
     try {
@@ -59,10 +45,21 @@ export function KeywordGroupManager({
       });
     }
   }, [projectId, toast]);
-  
+
   React.useEffect(() => {
     fetchGroups();
-  }, [fetchGroups]);
+  }, [fetchGroups, projectId]);
+
+  React.useEffect(() => {
+    if (selectedGroup) {
+      // Update available keywords by filtering out keywords already in the selected group
+      const groupKeywords = new Set(selectedGroup.keywords.map(k => k.keyword));
+      setAvailableKeywords(keywords.filter(k => !groupKeywords.has(k.keyword)));
+    } else {
+      setAvailableKeywords(keywords);
+    }
+  }, [keywords, selectedGroup]);
+
 
   const createGroup = async () => {
     if (!newGroupName.trim()) {

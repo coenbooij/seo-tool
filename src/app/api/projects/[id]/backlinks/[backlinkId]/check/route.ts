@@ -1,11 +1,11 @@
-import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { BacklinkAnalyzer } from '@/services/seo/analyzers/backlink-analyzer'
 import { getToken } from "next-auth/jwt"
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string; backlinkId: string } }
+  context: { params: Promise<{ id: string; backlinkId: string }>}
 ) {
   try {
     const token = await getToken({ req: request })

@@ -33,7 +33,7 @@ export function KeywordActionToolbar({
 
         <Button 
           variant="secondary"
-          onClick={onAddToGroup}
+          onClick={() => onAddToGroup('defaultGroupId')}
           disabled={!hasSelection}
           className="flex items-center gap-2"
         >
@@ -43,7 +43,7 @@ export function KeywordActionToolbar({
 
         <Button 
           variant="secondary"
-          onClick={onExport}
+          onClick={() => onExport('csv')}
           disabled={!hasSelection}
           className="flex items-center gap-2"
         >

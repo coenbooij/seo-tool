@@ -24,20 +24,39 @@ export interface Issue {
   updatedAt?: Date;
 }
 
+export interface MetaTag {
+  name?: string;
+  property?: string;
+  content?: string;
+}
+
 export interface ContentMetrics {
   avgScore: number;
   change: number;
-  title: string;
+  title: string | null;
   titleLength: number;
-  description: string;
+  description: string | null;
   descriptionLength: number;
-  wordCount: number;
   h1Count: number;
+  h1Tags: string[];
   h2Count: number;
+  h2Tags: string[];
+  wordCount: number;
   imageCount: number;
   imagesWithoutAlt: number;
   hasCanonical: boolean;
   hasRobots: boolean;
   hasViewport: boolean;
   hasSchema: boolean;
+  metaTags: MetaTag[];
+}
+
+export interface AnalyzerResult {
+  score: number;
+  issues: Issue[];
+}
+
+export interface Analyzer {
+  analyze(html: string, url: string): Promise<ContentMetrics>;
+  getAnalysis(result: ContentMetrics): AnalyzerResult;
 }

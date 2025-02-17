@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 import { google } from 'googleapis';
 import GoogleSearchConsoleService from '@/services/seo/google-search-console-service';
 

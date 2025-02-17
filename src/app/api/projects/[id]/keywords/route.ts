@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 import { addKeywords, getProjectKeywords } from '@/lib/db/keywords';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }>}
 ) {
   const session = await getServerSession(authOptions);
 
@@ -14,7 +14,7 @@ export async function GET(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const projectId = params.id;
+  const projectId = (await params).id;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
@@ -34,7 +34,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -42,7 +42,7 @@ export async function POST(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const projectId = params.id;
+  const projectId = (await params).id;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
@@ -74,7 +74,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -82,7 +82,7 @@ export async function DELETE(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const projectId = params.id;
+  const projectId = (await params).id;
   const { searchParams } = new URL(request.url);
   const keyword = searchParams.get('keyword');
 
@@ -119,7 +119,7 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -127,7 +127,7 @@ export async function PATCH(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const projectId = params.id;
+  const projectId = (await params).id;
   const { searchParams } = new URL(request.url);
   const keywordId = searchParams.get('keywordId');
 

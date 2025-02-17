@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; keywordId: string } }
+  { params }: { params: Promise<{ id: string; keywordId: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -13,7 +13,7 @@ export async function GET(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const { id: projectId, keywordId } = params;
+  const { id: projectId, keywordId } = await params;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
@@ -82,7 +82,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; keywordId: string } }
+  { params }: { params: Promise<{ id: string; keywordId: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -90,7 +90,7 @@ export async function POST(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const { id: projectId, keywordId } = params;
+  const { id: projectId, keywordId } = await params;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({

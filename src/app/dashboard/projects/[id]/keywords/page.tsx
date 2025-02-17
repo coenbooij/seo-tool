@@ -2,7 +2,7 @@ import { getProjectKeywords } from '@/lib/db/keywords';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 import { prisma } from '@/lib/prisma';
 import { KeywordsClient } from './keywords-client';
 
@@ -11,8 +11,12 @@ export const metadata = {
   description: 'Manage and optimize your target keywords using a systematic workflow',
 };
 
+interface PageParams {
+  id: string;
+}
+
 interface KeywordsPageProps {
-  params: { id: string }
+  params: Promise<PageParams>;
 }
 
 export default async function KeywordsPage({
@@ -24,7 +28,7 @@ export default async function KeywordsPage({
     notFound();
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   const project = await prisma.project.findFirst({
     where: {

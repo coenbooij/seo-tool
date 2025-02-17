@@ -2,7 +2,8 @@ import { JSDOM } from 'jsdom'
 import type { Analyzer, ContentMetrics, AnalyzerResult, MetaTag } from '../types'
 
 export class ContentAnalyzer implements Analyzer {
-  async analyze(html: string): Promise<ContentMetrics> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async analyze(html: string, url: string): Promise<ContentMetrics> {
     const dom = new JSDOM(html)
     const document = dom.window.document
 
@@ -34,8 +35,10 @@ export class ContentAnalyzer implements Analyzer {
                      document.querySelector('[itemtype]') !== null
 
     return {
+      avgScore: 0, // Initial score, will be updated after analysis
+      change: 0, // Initial change, would need historical data to calculate
       title: document.title || null,
-      titleLength: document.title.length,
+      titleLength: document.title?.length || 0,
       description,
       descriptionLength: description?.length || 0,
       h1Count: h1Tags.length,

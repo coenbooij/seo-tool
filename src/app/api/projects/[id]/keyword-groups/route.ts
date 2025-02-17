@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import authOptions from '@/lib/authOptions';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +13,7 @@ export async function GET(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const projectId = params.id;
+    const projectId = (await params).id;
 
     const groups = await prisma.keywordGroup.findMany({
       where: {
@@ -36,10 +36,7 @@ export async function GET(
             searchVolume: true,
             difficulty: true,
             currentRank: true,
-            density: true,
-            priority: true,
             notes: true,
-            lastChecked: true,
           },
         },
       },
@@ -53,8 +50,8 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
-  { }: { params: { id: string } }
+  request: Request, 
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -63,6 +60,7 @@ export async function POST(
     }
 
     const { name } = await request.json();
+    const projectId = (await params).id;
 
     if (!name) {
       return new NextResponse('Group name is required', { status: 400 });
@@ -71,6 +69,11 @@ export async function POST(
     const group = await prisma.keywordGroup.create({
       data: {
         name,
+        project: {
+          connect: {
+            id: projectId,
+          },
+        },
       },
       select: {
         id: true,
@@ -82,10 +85,7 @@ export async function POST(
             searchVolume: true,
             difficulty: true,
             currentRank: true,
-            density: true,
-            priority: true,
             notes: true,
-            lastChecked: true,
           },
         },
       },

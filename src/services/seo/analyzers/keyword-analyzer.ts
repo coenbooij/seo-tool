@@ -1,5 +1,6 @@
 import { KeywordIntent } from '@prisma/client'
 import type { KeywordData } from '@/lib/db/keywords'
+import { KeywordSource, ContentStatus } from '@/app/dashboard/projects/[id]/keywords/types'
 import { calculatePriorityScore, calculateKeywordDensity, type KeywordScoreInput } from '../utils/keyword-scoring'
 
 export interface KeywordAnalysisResult {
@@ -136,12 +137,24 @@ export class KeywordAnalyzer {
   private async enrichKeywordData(keywords: string[]): Promise<KeywordData[]> {
     // In production, integrate with keyword research API
     return keywords.map(keyword => ({
+      id: '', // Generated ID
       keyword,
       searchVolume: Math.floor(Math.random() * 10000), // Mock data
       difficulty: Math.floor(Math.random() * 100),
       intent: this.determineKeywordIntent(keyword),
       priority: 0, // Will be calculated later
-      currentRank: undefined // Use undefined instead of null
+      currentRank: null, // Should be null instead of undefined
+      competition: 0,
+      cpc: 0,
+      density: 0,
+      notes: null,
+      lastChecked: new Date(),
+      projectId: '',
+      groups: [],
+      source: KeywordSource.BRAINSTORM, // Add source
+      serpFeatures: [], // Add serpFeatures
+      contentStatus: ContentStatus.NOT_STARTED, // Add contentStatus
+      contentPriority: 0 // Add contentPriority
     }))
   }
 

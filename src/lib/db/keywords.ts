@@ -153,3 +153,5 @@ export async function updateKeyword(
     contentPriority: 0,
   };
 }
+
+export type { KeywordData };
