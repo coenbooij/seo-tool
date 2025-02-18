@@ -2,6 +2,12 @@
 CREATE TYPE "KeywordIntent" AS ENUM ('INFORMATIONAL', 'NAVIGATIONAL', 'COMMERCIAL', 'TRANSACTIONAL');
 
 -- CreateEnum
+CREATE TYPE "KeywordSource" AS ENUM ('BRAINSTORM', 'GSC', 'ANALYTICS', 'COMPETITOR', 'TOOL', 'MANUAL');
+
+-- CreateEnum
+CREATE TYPE "ContentStatus" AS ENUM ('NOT_STARTED', 'PLANNED', 'IN_PROGRESS', 'PUBLISHED', 'NEEDS_UPDATE');
+
+-- CreateEnum
 CREATE TYPE "BacklinkType" AS ENUM ('DOFOLLOW', 'NOFOLLOW', 'UGC', 'SPONSORED');
 
 -- CreateEnum
@@ -64,6 +70,18 @@ CREATE TABLE "Keyword" (
     "currentRank" INTEGER NOT NULL DEFAULT 0,
     "bestRank" INTEGER NOT NULL DEFAULT 0,
     "url" TEXT,
+    "source" "KeywordSource" NOT NULL DEFAULT 'MANUAL',
+    "seasonality" JSONB,
+    "serpFeatures" TEXT[],
+    "contentStatus" "ContentStatus" NOT NULL DEFAULT 'NOT_STARTED',
+    "contentPriority" INTEGER DEFAULT 0,
+    "contentType" TEXT,
+    "contentBrief" TEXT,
+    "clusterName" TEXT,
+    "clusterScore" DOUBLE PRECISION DEFAULT 0,
+    "parentKeyword" TEXT,
+    "trends" JSONB,
+    "notes" TEXT,
     "projectId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -138,6 +156,9 @@ CREATE TABLE "VerificationToken" (
     "token" TEXT NOT NULL,
     "expires" TIMESTAMP(3) NOT NULL
 );
+
+-- CreateIndex
+CREATE INDEX "Keyword_clusterName_idx" ON "Keyword"("clusterName");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
