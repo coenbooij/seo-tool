@@ -155,10 +155,10 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-500">
                     No projects yet.{' '}
                     <Link
-                      href="/dashboard/projects/new"
+                      href="/dashboard/projects"
                       className="font-medium text-indigo-600 hover:text-indigo-500"
                     >
-                      Create your first project
+                      Go to projects to create your first one
                     </Link>
                   </p>
                 </div>
