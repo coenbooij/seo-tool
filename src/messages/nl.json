@@ -217,14 +217,14 @@
         "description": "Je kunt handmatig backlinks toevoegen."
       },
       "metrics": {
-        "activeBacklinks": "Totaal Actieve Backlinks",
-        "avgDomainAuthority": "Gemiddelde Domain Authority",
+        "activeBacklinks": "Totale Actieve Backlinks",
+        "avgDomainAuthority": "Gemiddelde Domeinautoriteit",
         "newThisMonth": "Nieuw Deze Maand",
         "lostLinks": "Verloren Links (30d)"
       },
       "table": {
         "title": "Backlinks",
-        "description": "Een overzicht van alle backlinks naar je website",
+        "description": "Een lijst van alle backlinks die naar je website verwijzen",
         "columns": {
           "url": "URL",
           "target": "Doel",
@@ -294,8 +294,9 @@
         "add": "Backlink Toevoegen",
         "edit": "Bewerken",
         "delete": "Verwijderen",
-        "recheckAll": "Alles Controleren",
-        "recheck": "Controleren"
+        "recheckAll": "Alles Opnieuw Controleren",
+        "recheck": "Controleren",
+        "checking": "Controleren"
       },
       "deleteDialog": {
         "title": "Weet je het zeker?",
@@ -311,6 +312,14 @@
         "deleteError": {
           "title": "Fout",
           "description": "Kan backlink niet verwijderen"
+        },
+        "recheckSuccess": {
+          "title": "Status Bijgewerkt",
+          "description": "Alle backlinks zijn opnieuw gecontroleerd"
+        },
+        "recheckError": {
+          "title": "Fout",
+          "description": "Kan sommige backlinks niet controleren"
         }
       }
     },

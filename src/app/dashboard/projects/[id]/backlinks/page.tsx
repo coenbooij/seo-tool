@@ -1,6 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
+import { useLanguage } from '@/providers/language-provider'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { Backlink, BacklinkStatus } from '@prisma/client'
@@ -51,10 +52,11 @@ export default function BacklinksPage() {
   const [backlinkToDelete, setBacklinkToDelete] = useState<string | null>(null)
   const { toast } = useToast()
 
+  const { messages } = useLanguage();
   const loadingStates = [
-    'Loading backlinks...',
-    'Analyzing backlink data...',
-    'Calculating metrics...',
+    messages.projects.backlinks.loading.state1,
+    messages.projects.backlinks.loading.state2,
+    messages.projects.backlinks.loading.state3,
   ]
   const [loadingState, setLoadingState] = useState(0)
   
@@ -80,14 +82,14 @@ export default function BacklinksPage() {
 
       mutate()
       toast({
-        title: "Success",
-        description: "Backlink deleted successfully",
+        title: messages.projects.backlinks.toast.deleteSuccess.title,
+        description: messages.projects.backlinks.toast.deleteSuccess.description,
       })
     } catch (error) {
       console.error('Error deleting backlink:', error)
       toast({
-        title: "Error",
-        description: "Failed to delete backlink",
+        title: messages.projects.backlinks.toast.deleteError.title,
+        description: messages.projects.backlinks.toast.deleteError.description,
         variant: "destructive",
       })
     } finally {
@@ -97,7 +99,7 @@ export default function BacklinksPage() {
   }
 
   if (error) {
-    return <div className="text-red-500">Failed to load backlinks data</div>
+    return <div className="text-red-500">{messages.projects.backlinks.error}</div>
   }
 
   if (isLoading || !data?.backlinks || !data?.metrics) {
@@ -123,9 +125,9 @@ export default function BacklinksPage() {
   if (backlinks.length === 0) {
     return (
       <div className="text-center py-12">
-        <h3 className="mt-2 text-lg font-medium text-gray-900">No backlinks found</h3>
+        <h3 className="mt-2 text-lg font-medium text-gray-900">{messages.projects.backlinks.empty.title}</h3>
         <p className="mt-1 text-sm text-gray-500">
-          You can add your backlinks manually.
+          {messages.projects.backlinks.empty.description}
         </p>
         <div className="mt-6">
           <AddBacklinkDialog projectId={params.id as string} onBacklinkAdded={() => mutate()} />
@@ -158,7 +160,7 @@ export default function BacklinksPage() {
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <dt className="text-sm font-medium text-gray-500 truncate">
-              Total Active Backlinks
+              {messages.projects.backlinks.metrics.activeBacklinks}
             </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">
               {activeBacklinks.length}
@@ -168,7 +170,7 @@ export default function BacklinksPage() {
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <dt className="text-sm font-medium text-gray-500 truncate">
-              Average Domain Authority
+              {messages.projects.backlinks.metrics.avgDomainAuthority}
             </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">
               {avgDomainAuthority}
@@ -178,7 +180,7 @@ export default function BacklinksPage() {
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <dt className="text-sm font-medium text-gray-500 truncate">
-              New This Month
+              {messages.projects.backlinks.metrics.newThisMonth}
             </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">
               {
@@ -194,7 +196,7 @@ export default function BacklinksPage() {
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <dt className="text-sm font-medium text-gray-500 truncate">
-              Lost Links (30d)
+              {messages.projects.backlinks.metrics.lostLinks}
             </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">
               {latestGrowth.lost}
@@ -207,9 +209,9 @@ export default function BacklinksPage() {
       <div className="bg-white shadow rounded-lg p-4">
         <div className="sm:flex sm:items-center">
           <div className="sm:flex-auto">
-            <h1 className="text-xl font-semibold text-gray-900">Backlinks</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{messages.projects.backlinks.table.title}</h1>
             <p className="mt-2 text-sm text-gray-700">
-              A list of all backlinks pointing to your website
+              {messages.projects.backlinks.table.description}
             </p>
           </div>
           <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center gap-2">
@@ -222,15 +224,15 @@ export default function BacklinksPage() {
                 <select
                   id="backlink-filter"
                   name="backlink-filter"
-                  aria-label="Filter backlinks"
+                  aria-label={messages.projects.backlinks.table.filter.label}
                   value={filter}
                   onChange={(e) => setFilter(e.target.value as BacklinkStatus | 'all')}
                   className="block rounded-md border-gray-300 py-1.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 w-32 text-center h-8"
                 >
-                  <option value="all">All Links</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="LOST">Lost</option>
-                  <option value="BROKEN">Broken</option>
+                  <option value="all">{messages.projects.backlinks.table.filter.all}</option>
+                  <option value="ACTIVE">{messages.projects.backlinks.table.filter.active}</option>
+                  <option value="LOST">{messages.projects.backlinks.table.filter.lost}</option>
+                  <option value="BROKEN">{messages.projects.backlinks.table.filter.broken}</option>
                 </select>
                 
               </div>
@@ -250,14 +252,14 @@ export default function BacklinksPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Anchor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DA</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Seen</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.url}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.target}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.anchor}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.da}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.type}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.status}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.firstSeen}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{messages.projects.backlinks.table.columns.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -315,18 +317,18 @@ export default function BacklinksPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{messages.projects.backlinks.deleteDialog.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the backlink. This action cannot be undone.
+              {messages.projects.backlinks.deleteDialog.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setBacklinkToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setBacklinkToDelete(null)}>{messages.projects.backlinks.deleteDialog.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => backlinkToDelete && handleDelete(backlinkToDelete)}
               className="bg-red-500 hover:bg-red-600"
             >
-              Delete
+              {messages.projects.backlinks.deleteDialog.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

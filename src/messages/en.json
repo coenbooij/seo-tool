@@ -295,7 +295,8 @@
         "edit": "Edit",
         "delete": "Delete",
         "recheckAll": "Recheck All",
-        "recheck": "Recheck"
+        "recheck": "Recheck",
+        "checking": "Checking"
       },
       "deleteDialog": {
         "title": "Are you sure?",
@@ -311,6 +312,14 @@
         "deleteError": {
           "title": "Error",
           "description": "Failed to delete backlink"
+        },
+        "recheckSuccess": {
+          "title": "Status Updated",
+          "description": "All backlinks have been rechecked"
+        },
+        "recheckError": {
+          "title": "Error",
+          "description": "Failed to recheck some backlinks"
         }
       }
     },

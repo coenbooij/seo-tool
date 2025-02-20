@@ -28,7 +28,7 @@ export default function ProjectSettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl bg-white">
       <EditProjectForm project={project} />
     </div>
   )
