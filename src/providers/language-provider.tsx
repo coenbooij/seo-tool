@@ -141,56 +141,24 @@ export interface Messages {
       }
       metrics: {
         comparison: string
-        users: {
-          title: string
-          tooltip: string
-        }
-        pageViews: {
-          title: string
-          tooltip: string
-        }
-        sessionDuration: {
-          title: string
-          tooltip: string
-        }
-        bounceRate: {
-          title: string
-          tooltip: string
-        }
+        users: { title: string, tooltip: string }
+        pageViews: { title: string, tooltip: string }
+        sessionDuration: { title: string, tooltip: string }
+        bounceRate: { title: string, tooltip: string }
       }
       search: {
         title: string
         metrics: {
-          clicks: {
-            title: string
-            tooltip: string
-          }
-          impressions: {
-            title: string
-            tooltip: string
-          }
-          ctr: {
-            title: string
-            tooltip: string
-          }
-          position: {
-            title: string
-            tooltip: string
-          }
+          clicks: { title: string, tooltip: string }
+          impressions: { title: string, tooltip: string }
+          ctr: { title: string, tooltip: string }
+          position: { title: string, tooltip: string }
         }
       }
       sections: {
         behavior: string
-        topPages: {
-          title: string
-          views: string
-          noData: string
-        }
-        trafficSources: {
-          title: string
-          users: string
-          noData: string
-        }
+        topPages: { title: string, views: string, noData: string }
+        trafficSources: { title: string, users: string, noData: string }
       }
       configuration: {
         title: string
@@ -251,6 +219,7 @@ export interface Messages {
         }
       }
       actions: {
+        checking: string
         add: string
         edit: string
         delete: string
@@ -264,6 +233,14 @@ export interface Messages {
         confirm: string
       }
       toast: {
+        recheckError: {
+          title: string
+          description: string
+        }
+        recheckSuccess: {
+          title: string
+          description: string
+        }
         deleteSuccess: {
           title: string
           description: string
@@ -502,6 +479,7 @@ const createEmptyMessages = (): Messages => ({
         }
       },
       actions: {
+        checking: '',
         add: '',
         edit: '',
         delete: '',
@@ -515,6 +493,14 @@ const createEmptyMessages = (): Messages => ({
         confirm: ''
       },
       toast: {
+        recheckError: {
+          title: '',
+          description: ''
+        },
+        recheckSuccess: {
+          title: '',
+          description: ''
+        },
         deleteSuccess: {
           title: '',
           description: ''
