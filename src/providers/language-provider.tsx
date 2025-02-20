@@ -209,8 +209,13 @@ const LanguageContext = createContext<LanguageContextType>({
 
 export const useLanguage = () => useContext(LanguageContext)
 
+const loadStoredLanguage = (): string => {
+  if (typeof window === 'undefined') return 'en'
+  return localStorage.getItem('preferredLanguage') || 'en'
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState('en')
+  const [language, setLanguageState] = useState<string>(() => loadStoredLanguage())
   const [messages, setMessages] = useState<Messages>({
     settings: {
       title: '',
@@ -306,6 +311,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       }
     }
   })
+
+  const setLanguage = (newLanguage: string) => {
+    localStorage.setItem('preferredLanguage', newLanguage)
+    setLanguageState(newLanguage)
+  }
 
   useEffect(() => {
     const loadMessages = async () => {
