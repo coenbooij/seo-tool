@@ -15,5 +15,94 @@
         "description": "Ontvang wekelijkse prestatierapporten"
       }
     }
+  },
+  "dashboard": {
+    "welcome": "Welkom terug",
+    "overview": "Hier is een overzicht van je SEO prestaties",
+    "refresh": "Vernieuwen",
+    "stats": {
+      "totalProjects": "Totaal Projecten",
+      "averagePosition": "Gemiddelde Positie",
+      "lastMonth": "vorige maand",
+      "averagePositionTooltip": "Gemiddelde positie van alle gevolgde zoekwoorden"
+    },
+    "recentProjects": {
+      "title": "Recente Projecten",
+      "viewAll": "Bekijk alles",
+      "loadError": "Kan dashboard gegevens niet laden. Vernieuw de pagina.",
+      "noProjects": "Nog geen projecten.",
+      "createFirst": "Ga naar projecten om je eerste project aan te maken",
+      "lastUpdated": "Laatst bijgewerkt",
+      "status": "Actief"
+    }
+  },
+  "navigation": {
+    "title": "SEO Tool",
+    "dashboard": "Dashboard",
+    "projects": "Projecten",
+    "settings": "Instellingen",
+    "signOut": "Uitloggen",
+    "signingOut": "Uitloggen..."
+  },
+  "landing": {
+    "auth": {
+      "signIn": "Inloggen",
+      "register": "Registreren"
+    },
+    "hero": {
+      "title": "Verbeter je SEO Prestaties",
+      "subtitle": "Volg, Analyseer, Verbeter",
+      "description": "Krijg bruikbare inzichten en verbeter je zoekresultaten met onze uitgebreide SEO toolkit.",
+      "cta": {
+        "getStarted": "Aan de slag",
+        "learnMore": "Meer informatie"
+      }
+    },
+    "features": {
+      "title": "Functies",
+      "subtitle": "Alles wat je nodig hebt om te slagen",
+      "description": "Onze uitgebreide set SEO tools helpt je bij het optimaliseren van je website en het verbeteren van je zoekresultaten.",
+      "items": [
+        {
+          "title": "Zoekwoord Tracking",
+          "description": "Monitor je zoekrangschikking en volg de vooruitgang"
+        },
+        {
+          "title": "Backlink Analyse",
+          "description": "Ontdek en monitor je backlink profiel"
+        },
+        {
+          "title": "Technische SEO",
+          "description": "Identificeer en los technische SEO problemen op"
+        }
+      ]
+    },
+    "footer": {
+      "copyright": "SEO Tool. Alle rechten voorbehouden."
+    }
+  },
+  "projects": {
+    "title": "Projecten",
+    "addProject": "Project Toevoegen",
+    "errors": {
+      "loading": "Fout bij laden projecten",
+      "loadingDesc": "Kan projecten niet laden. Probeer het later opnieuw.",
+      "creating": "Kan project niet aanmaken"
+    },
+    "loading": "Projecten laden...",
+    "empty": "Nog geen projecten. Maak je eerste project aan om te beginnen!",
+    "status": "Actief",
+    "form": {
+      "name": "Projectnaam",
+      "nameDesc": "Voer de naam van je project in",
+      "url": "Website URL",
+      "urlDesc": "Voer de URL van je website in",
+      "gaProperty": "Google Analytics Property ID",
+      "gaPropertyDesc": "Optioneel: Voer je GA4 property ID in",
+      "gscSite": "Google Search Console Site",
+      "gscSiteDesc": "Optioneel: Voer je geverifieerde GSC site in",
+      "submit": "Project Aanmaken",
+      "cancel": "Annuleren"
+    }
   }
 }

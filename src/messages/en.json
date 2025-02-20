@@ -15,5 +15,94 @@
         "description": "Get weekly performance reports"
       }
     }
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "overview": "Here's an overview of your SEO performance",
+    "refresh": "Refresh",
+    "stats": {
+      "totalProjects": "Total Projects",
+      "averagePosition": "Average Position",
+      "lastMonth": "last month",
+      "averagePositionTooltip": "Average position across all tracked keywords"
+    },
+    "recentProjects": {
+      "title": "Recent Projects",
+      "viewAll": "View all",
+      "loadError": "Failed to load dashboard data. Please try refreshing the page.",
+      "noProjects": "No projects yet.",
+      "createFirst": "Go to projects to create your first one",
+      "lastUpdated": "Last updated",
+      "status": "Active"
+    }
+  },
+  "navigation": {
+    "title": "SEO Tool",
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "settings": "Settings",
+    "signOut": "Sign Out",
+    "signingOut": "Signing out..."
+  },
+  "landing": {
+    "auth": {
+      "signIn": "Sign in",
+      "register": "Register"
+    },
+    "hero": {
+      "title": "Boost Your SEO Performance",
+      "subtitle": "Track, Analyze, Improve",
+      "description": "Get actionable insights and improve your search rankings with our comprehensive SEO toolkit.",
+      "cta": {
+        "getStarted": "Get started",
+        "learnMore": "Learn more"
+      }
+    },
+    "features": {
+      "title": "Features",
+      "subtitle": "Everything you need to succeed",
+      "description": "Our comprehensive suite of SEO tools helps you optimize your website and improve your search rankings.",
+      "items": [
+        {
+          "title": "Keyword Tracking",
+          "description": "Monitor your search rankings and track progress over time"
+        },
+        {
+          "title": "Backlink Analysis",
+          "description": "Discover and monitor your backlink profile"
+        },
+        {
+          "title": "Technical SEO",
+          "description": "Identify and fix technical SEO issues"
+        }
+      ]
+    },
+    "footer": {
+      "copyright": "SEO Tool. All rights reserved."
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "addProject": "Add Project",
+    "errors": {
+      "loading": "Error loading projects",
+      "loadingDesc": "Failed to load projects. Please try again later.",
+      "creating": "Failed to create project"
+    },
+    "loading": "Loading projects...",
+    "empty": "No projects yet. Create your first project to get started!",
+    "status": "Active",
+    "form": {
+      "name": "Project Name",
+      "nameDesc": "Enter the name of your project",
+      "url": "Website URL",
+      "urlDesc": "Enter the URL of your website",
+      "gaProperty": "Google Analytics Property ID",
+      "gaPropertyDesc": "Optional: Enter your GA4 property ID",
+      "gscSite": "Google Search Console Site",
+      "gscSiteDesc": "Optional: Enter your verified GSC site",
+      "submit": "Create Project",
+      "cancel": "Cancel"
+    }
   }
 }

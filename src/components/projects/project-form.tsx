@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { useAnalyticsSites } from '@/hooks/use-analytics-sites'
+import { useLanguage } from '@/providers/language-provider'
 
 interface ProjectFormProps {
   onSubmit: (project: {
@@ -22,6 +23,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
   const [gscVerifiedSite, setGscVerifiedSite] = useState('')
   const [error, setError] = useState('')
   const [sitemapUrl, setSitemapUrl] = useState('')
+  const { messages } = useLanguage()
 
   // Update sitemap URL when website URL changes
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
     const trimmedGscVerifiedSite = gscVerifiedSite.trim()
 
     if (!trimmedName || !trimmedUrl) {
-      setError('Name and URL are required');
+      setError(messages.projects.errors.creating);
       return;
     }
 
@@ -65,7 +67,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
         ...(trimmedGscVerifiedSite && { gscVerifiedSite: trimmedGscVerifiedSite }),
       })
     } catch (error) {
-      setError('Failed to create project')
+      setError(messages.projects.errors.creating)
       console.error('Form submission error:', error)
     }
   }
@@ -74,33 +76,33 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-1">
         <label htmlFor="name" className="text-sm font-medium">
-          Project Name
+          {messages.projects.form.name}
         </label>
         <Input
           type="text"
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="My Website"
+          placeholder={messages.projects.form.nameDesc}
         />
       </div>
 
       <div className="space-y-1">
         <label htmlFor="url" className="text-sm font-medium">
-          URL
+          {messages.projects.form.url}
         </label>
         <Input
           type="text"
           id="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="example.com"
+          placeholder={messages.projects.form.urlDesc}
         />
       </div>
 
       <div className="space-y-1">
         <label htmlFor="gaPropertyId" className="text-sm font-medium">
-          Google Analytics Property (Optional)
+          {messages.projects.form.gaProperty}
         </label>
         <select
           id="gaPropertyId"
@@ -111,7 +113,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
           aria-describedby="gaPropertyId-description"
           disabled={isLoadingProperties}
         >
-          <option value="">Select a property</option>
+          <option value="">{messages.projects.form.gaPropertyDesc}</option>
           {gaProperties.map((property) => (
             <option key={property.id} value={property.id}>
               {property.name} ({property.id}) - {property.accountName}
@@ -122,7 +124,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
 
       <div className="space-y-1">
         <label htmlFor="gscVerifiedSite" className="text-sm font-medium">
-          Google Search Console Site (Optional)
+          {messages.projects.form.gscSite}
         </label>
         <select
           id="gscVerifiedSite"
@@ -133,7 +135,7 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
           aria-describedby="gscVerifiedSite-description"
           disabled={isLoadingSites}
         >
-          <option value="">Select a site</option>
+          <option value="">{messages.projects.form.gscSiteDesc}</option>
           {gscSites.map((site) => (
             <option key={site.url} value={site.url}>
               {site.url} ({site.permissionLevel})
@@ -152,13 +154,13 @@ export default function ProjectForm({ onSubmit, onCancel }: ProjectFormProps) {
           onClick={onCancel}
           className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Cancel
+          {messages.projects.form.cancel}
         </button>
         <button
           type="submit"
           className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Create Project
+          {messages.projects.form.submit}
         </button>
       </div>
     </form>

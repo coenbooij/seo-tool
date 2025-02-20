@@ -20,6 +20,85 @@ interface Messages {
       }
     }
   }
+  dashboard: {
+    welcome: string
+    overview: string
+    refresh: string
+    stats: {
+      totalProjects: string
+      averagePosition: string
+      lastMonth: string
+      averagePositionTooltip: string
+    }
+    recentProjects: {
+      title: string
+      viewAll: string
+      loadError: string
+      noProjects: string
+      createFirst: string
+      lastUpdated: string
+      status: string
+    }
+  }
+  navigation: {
+    title: string
+    dashboard: string
+    projects: string
+    settings: string
+    signOut: string
+    signingOut: string
+  }
+  landing: {
+    auth: {
+      signIn: string
+      register: string
+    }
+    hero: {
+      title: string
+      subtitle: string
+      description: string
+      cta: {
+        getStarted: string
+        learnMore: string
+      }
+    }
+    features: {
+      title: string
+      subtitle: string
+      description: string
+      items: Array<{
+        title: string
+        description: string
+      }>
+    }
+    footer: {
+      copyright: string
+    }
+  }
+  projects: {
+    title: string
+    addProject: string
+    errors: {
+      loading: string
+      loadingDesc: string
+      creating: string
+    }
+    loading: string
+    empty: string
+    status: string
+    form: {
+      name: string
+      nameDesc: string
+      url: string
+      urlDesc: string
+      gaProperty: string
+      gaPropertyDesc: string
+      gscSite: string
+      gscSiteDesc: string
+      submit: string
+      cancel: string
+    }
+  }
 }
 
 interface LanguageContextType {
@@ -48,6 +127,82 @@ const LanguageContext = createContext<LanguageContextType>({
           description: ''
         }
       }
+    },
+    dashboard: {
+      welcome: '',
+      overview: '',
+      refresh: '',
+      stats: {
+        totalProjects: '',
+        averagePosition: '',
+        lastMonth: '',
+        averagePositionTooltip: ''
+      },
+      recentProjects: {
+        title: '',
+        viewAll: '',
+        loadError: '',
+        noProjects: '',
+        createFirst: '',
+        lastUpdated: '',
+        status: ''
+      }
+    },
+    navigation: {
+      title: '',
+      dashboard: '',
+      projects: '',
+      settings: '',
+      signOut: '',
+      signingOut: ''
+    },
+    landing: {
+      auth: {
+        signIn: '',
+        register: ''
+      },
+      hero: {
+        title: '',
+        subtitle: '',
+        description: '',
+        cta: {
+          getStarted: '',
+          learnMore: ''
+        }
+      },
+      features: {
+        title: '',
+        subtitle: '',
+        description: '',
+        items: []
+      },
+      footer: {
+        copyright: ''
+      }
+    },
+    projects: {
+      title: '',
+      addProject: '',
+      errors: {
+        loading: '',
+        loadingDesc: '',
+        creating: ''
+      },
+      loading: '',
+      empty: '',
+      status: '',
+      form: {
+        name: '',
+        nameDesc: '',
+        url: '',
+        urlDesc: '',
+        gaProperty: '',
+        gaPropertyDesc: '',
+        gscSite: '',
+        gscSiteDesc: '',
+        submit: '',
+        cancel: ''
+      }
     }
   }
 })
@@ -72,6 +227,82 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
           title: '',
           description: ''
         }
+      }
+    },
+    dashboard: {
+      welcome: '',
+      overview: '',
+      refresh: '',
+      stats: {
+        totalProjects: '',
+        averagePosition: '',
+        lastMonth: '',
+        averagePositionTooltip: ''
+      },
+      recentProjects: {
+        title: '',
+        viewAll: '',
+        loadError: '',
+        noProjects: '',
+        createFirst: '',
+        lastUpdated: '',
+        status: ''
+      }
+    },
+    navigation: {
+      title: '',
+      dashboard: '',
+      projects: '',
+      settings: '',
+      signOut: '',
+      signingOut: ''
+    },
+    landing: {
+      auth: {
+        signIn: '',
+        register: ''
+      },
+      hero: {
+        title: '',
+        subtitle: '',
+        description: '',
+        cta: {
+          getStarted: '',
+          learnMore: ''
+        }
+      },
+      features: {
+        title: '',
+        subtitle: '',
+        description: '',
+        items: []
+      },
+      footer: {
+        copyright: ''
+      }
+    },
+    projects: {
+      title: '',
+      addProject: '',
+      errors: {
+        loading: '',
+        loadingDesc: '',
+        creating: ''
+      },
+      loading: '',
+      empty: '',
+      status: '',
+      form: {
+        name: '',
+        nameDesc: '',
+        url: '',
+        urlDesc: '',
+        gaProperty: '',
+        gaPropertyDesc: '',
+        gscSite: '',
+        gscSiteDesc: '',
+        submit: '',
+        cancel: ''
       }
     }
   })

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import ProjectForm from '@/components/projects/project-form'
+import { useLanguage } from '@/providers/language-provider'
 
 interface Project {
   id: string // Changed from number to string since we're using CUID
@@ -16,12 +17,13 @@ interface Project {
 export default function ProjectsPage() {
   const [showForm, setShowForm] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const { messages } = useLanguage()
   
   const fetcher = async (url: string) => {
     const res = await fetch(url)
     if (!res.ok) {
       const error = await res.json()
-      throw new Error(error.error || 'Failed to fetch projects')
+      throw new Error(error.error || messages.projects.errors.creating)
     }
     return res.json()
   }
@@ -47,23 +49,23 @@ export default function ProjectsPage() {
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create project')
+        throw new Error(data.error || messages.projects.errors.creating)
       }
 
       await mutate() // Refresh the projects list
       setShowForm(false)
     } catch (error) {
       console.error('Error creating project:', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create project')
+      setErrorMessage(error instanceof Error ? error.message : messages.projects.errors.creating)
     }
   }
 
   if (error) {
     return (
       <div className="p-4 rounded-md bg-red-50 border border-red-200">
-        <h3 className="text-sm font-medium text-red-800">Error loading projects</h3>
+        <h3 className="text-sm font-medium text-red-800">{messages.projects.errors.loading}</h3>
         <div className="mt-2 text-sm text-red-700">
-          {error.message || 'Failed to load projects. Please try again later.'}
+          {error.message || messages.projects.errors.loadingDesc}
         </div>
       </div>
     )
@@ -72,7 +74,7 @@ export default function ProjectsPage() {
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Projects</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">{messages.projects.title}</h1>
         {!showForm && (
           <button
             onClick={() => {
@@ -81,7 +83,7 @@ export default function ProjectsPage() {
             }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            Add Project
+            {messages.projects.addProject}
           </button>
         )}
       </div>
@@ -106,10 +108,10 @@ export default function ProjectsPage() {
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         {!projects ? (
-          <div className="p-4 text-center text-gray-600">Loading projects...</div>
+          <div className="p-4 text-center text-gray-600">{messages.projects.loading}</div>
         ) : projects.length === 0 ? (
           <div className="p-4 text-center text-gray-600">
-            No projects yet. Create your first project to get started!
+            {messages.projects.empty}
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
@@ -129,7 +131,7 @@ export default function ProjectsPage() {
                     </div>
                     <div className="ml-2 flex-shrink-0 flex">
                       <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Active
+                        {messages.projects.status}
                       </p>
                     </div>
                   </div>
