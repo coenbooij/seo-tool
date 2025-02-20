@@ -34,12 +34,9 @@ export async function GET(
       },
       _avg: {
         currentRank: true,
-        searchVolume: true,
-        difficulty: true
+        searchVolume: true
       },
-      _count: {
-        id: true
-      }
+      _count: true
     })
 
     // Get backlink metrics
@@ -48,11 +45,9 @@ export async function GET(
         projectId: id
       },
       _avg: {
-        authority: true
+        domainAuthority: true
       },
-      _count: {
-        id: true
-      },
+      _count: true,
       _max: {
         createdAt: true
       }
@@ -72,19 +67,18 @@ export async function GET(
     })
 
     const backlinkChange = previousBacklinksCount > 0
-      ? ((backlinkMetrics._count.id - previousBacklinksCount) / previousBacklinksCount) * 100
+      ? ((backlinkMetrics._count - previousBacklinksCount) / previousBacklinksCount) * 100
       : 100
 
     return NextResponse.json({
       keywords: {
-        total: keywordMetrics._count.id,
+        total: keywordMetrics._count,
         averageRank: Math.round(keywordMetrics._avg.currentRank || 0),
-        averageVolume: Math.round(keywordMetrics._avg.searchVolume || 0),
-        averageDifficulty: Math.round(keywordMetrics._avg.difficulty || 0)
+        averageVolume: Math.round(keywordMetrics._avg.searchVolume || 0)
       },
       backlinks: {
-        total: backlinkMetrics._count.id,
-        averageAuthority: Math.round(backlinkMetrics._avg.authority || 0),
+        total: backlinkMetrics._count,
+        averageDomainAuthority: Math.round(backlinkMetrics._avg.domainAuthority || 0),
         change: Math.round(backlinkChange)
       }
     })

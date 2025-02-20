@@ -1,0 +1,19 @@
+{
+  "settings": {
+    "title": "Instellingen",
+    "userPreferences": "Gebruikersvoorkeuren",
+    "timezone": "Tijdzone",
+    "language": "Taal",
+    "notifications": {
+      "title": "Meldingen",
+      "email": {
+        "title": "E-mailmeldingen",
+        "description": "Ontvang e-mailupdates over je projecten"
+      },
+      "weeklyReports": {
+        "title": "Wekelijkse Rapporten",
+        "description": "Ontvang wekelijkse prestatierapporten"
+      }
+    }
+  }
+}

@@ -1,18 +1,21 @@
 'use client'
 
 import { Card } from "@/components/ui/card"
+import { useLanguage } from "@/providers/language-provider"
 
 export default function SettingsPage() {
+  const { language, setLanguage, messages } = useLanguage()
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold mb-6">{messages.settings.title}</h1>
       <div className="space-y-6 max-w-2xl">
         <Card className="p-6 bg-white">
-          <h2 className="text-lg font-semibold mb-4">User Preferences</h2>
+          <h2 className="text-lg font-semibold mb-4">{messages.settings.userPreferences}</h2>
           <div className="space-y-4">
             <div>
               <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
-                Time Zone
+                {messages.settings.timezone}
               </label>
               <select 
                 id="timezone"
@@ -33,13 +36,14 @@ export default function SettingsPage() {
             </div>
             <div>
               <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
-                Language
+                {messages.settings.language}
               </label>
               <select 
                 id="language"
                 name="language"
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                defaultValue="en"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
                 aria-label="Select language"
               >
                 <option value="en">English</option>
@@ -50,12 +54,12 @@ export default function SettingsPage() {
         </Card>
         
         <Card className="p-6 bg-white">
-          <h2 className="text-lg font-semibold mb-4">Notifications</h2>
+          <h2 className="text-lg font-semibold mb-4">{messages.settings.notifications.title}</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">Email Notifications</h3>
-                <p className="text-sm text-gray-500">Receive email updates about your projects</p>
+                <h3 className="text-sm font-medium text-gray-700">{messages.settings.notifications.email.title}</h3>
+                <p className="text-sm text-gray-500">{messages.settings.notifications.email.description}</p>
               </div>
               <label htmlFor="email-notifications" className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -71,8 +75,8 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">Weekly Reports</h3>
-                <p className="text-sm text-gray-500">Get weekly performance reports</p>
+                <h3 className="text-sm font-medium text-gray-700">{messages.settings.notifications.weeklyReports.title}</h3>
+                <p className="text-sm text-gray-500">{messages.settings.notifications.weeklyReports.description}</p>
               </div>
               <label htmlFor="weekly-reports" className="relative inline-flex items-center cursor-pointer">
                 <input 

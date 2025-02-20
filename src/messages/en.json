@@ -1,0 +1,19 @@
+{
+  "settings": {
+    "title": "Settings",
+    "userPreferences": "User Preferences",
+    "timezone": "Time Zone",
+    "language": "Language",
+    "notifications": {
+      "title": "Notifications",
+      "email": {
+        "title": "Email Notifications",
+        "description": "Receive email updates about your projects"
+      },
+      "weeklyReports": {
+        "title": "Weekly Reports",
+        "description": "Get weekly performance reports"
+      }
+    }
+  }
+}
