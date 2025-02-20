@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { BacklinkStatus, BacklinkType } from "@prisma/client"
+import { useLanguage, Messages } from '@/providers/language-provider'
 
 type StatusMap = {
   [K in BacklinkStatus | BacklinkType]: {
@@ -15,34 +16,36 @@ type StatusMap = {
   }
 }
 
-const statusInfo: StatusMap = {
-  ACTIVE: {
-    color: "bg-green-100 text-green-800",
-    description: "Link is live and successfully points to the target URL"
-  },
-  LOST: {
-    color: "bg-red-100 text-red-800",
-    description: "Link was found but no longer points to the target URL"
-  },
-  BROKEN: {
-    color: "bg-yellow-100 text-yellow-800",
-    description: "Unable to access the link URL (404, timeout, etc.)"
-  },
-  DOFOLLOW: {
-    color: "bg-blue-100 text-blue-800",
-    description: "Standard link that passes SEO value"
-  },
-  NOFOLLOW: {
-    color: "bg-gray-100 text-gray-800",
-    description: "Link with rel='nofollow' that doesn't pass SEO value"
-  },
-  UGC: {
-    color: "bg-purple-100 text-purple-800",
-    description: "User-generated content link (comments, forums, etc.)"
-  },
-  SPONSORED: {
-    color: "bg-orange-100 text-orange-800",
-    description: "Paid or sponsored link that must be marked as such"
+function getStatusInfo(messages: Messages): StatusMap {
+  return {
+    ACTIVE: {
+      color: "bg-green-100 text-green-800",
+      description: messages.projects.backlinks.tooltips?.status?.active ?? "Link is live and successfully points to the target URL"
+    },
+    LOST: {
+      color: "bg-red-100 text-red-800",
+      description: messages.projects.backlinks.tooltips?.status?.lost ?? "Link was found but no longer points to the target URL"
+    },
+    BROKEN: {
+      color: "bg-yellow-100 text-yellow-800",
+      description: messages.projects.backlinks.tooltips?.status?.broken ?? "Unable to access the link URL (404, timeout, etc.)"
+    },
+    DOFOLLOW: {
+      color: "bg-blue-100 text-blue-800",
+      description: messages.projects.backlinks.tooltips?.type?.dofollow ?? "Standard link that passes SEO value"
+    },
+    NOFOLLOW: {
+      color: "bg-gray-100 text-gray-800",
+      description: messages.projects.backlinks.tooltips?.type?.nofollow ?? "Link with rel='nofollow' that doesn't pass SEO value"
+    },
+    UGC: {
+      color: "bg-purple-100 text-purple-800",
+      description: messages.projects.backlinks.tooltips?.type?.ugc ?? "User-generated content link (comments, forums, etc.)"
+    },
+    SPONSORED: {
+      color: "bg-orange-100 text-orange-800", 
+      description: messages.projects.backlinks.tooltips?.type?.sponsored ?? "Paid or sponsored link that must be marked as such"
+    }
   }
 }
 
@@ -51,7 +54,8 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const info = statusInfo[status]
+  const { messages } = useLanguage()
+  const info = getStatusInfo(messages)[status]
 
   return (
     <TooltipProvider>

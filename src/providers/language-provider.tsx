@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
-interface Messages {
+export interface Messages {
   settings: {
     title: string
     userPreferences: string
@@ -235,6 +235,19 @@ interface Messages {
           active: string
           lost: string
           broken: string
+        }
+      }
+      tooltips: {
+        status: {
+          active: string
+          lost: string
+          broken: string
+        }
+        type: {
+          dofollow: string
+          nofollow: string
+          ugc: string
+          sponsored: string
         }
       }
       actions: {
@@ -473,6 +486,19 @@ const createEmptyMessages = (): Messages => ({
           active: '',
           lost: '',
           broken: ''
+        }
+      },
+      tooltips: {
+        status: {
+          active: '',
+          lost: '',
+          broken: ''
+        },
+        type: {
+          dofollow: '',
+          nofollow: '',
+          ugc: '',
+          sponsored: ''
         }
       },
       actions: {

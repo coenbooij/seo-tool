@@ -238,9 +238,9 @@
         "filter": {
           "label": "Filter backlinks",
           "all": "Alle Links",
-          "active": "Actief",
-          "lost": "Verloren",
-          "broken": "Kapot"
+          "active": "Active",
+          "lost": "Lost",
+          "broken": "Broken"
         }
       },
       "dialog": {
@@ -294,7 +294,7 @@
         "add": "Backlink Toevoegen",
         "edit": "Bewerken",
         "delete": "Verwijderen",
-        "recheckAll": "Alles Opnieuw Controleren",
+        "recheckAll": "Opnieuw Controleren",
         "recheck": "Controleren",
         "checking": "Controleren"
       },
@@ -303,6 +303,19 @@
         "description": "Dit zal de backlink permanent verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
         "cancel": "Annuleren",
         "confirm": "Verwijderen"
+      },
+      "tooltips": {
+        "status": {
+          "active": "Link is actief en verwijst succesvol naar de doel-URL",
+          "lost": "Link is gevonden maar verwijst niet meer naar de doel-URL",
+          "broken": "Kan de link URL niet bereiken (404, timeout, etc.)"
+        },
+        "type": {
+          "dofollow": "Standaard link die SEO-waarde doorgeeft",
+          "nofollow": "Link met rel='nofollow' die geen SEO-waarde doorgeeft",
+          "ugc": "User-generated content link (commentaar, forums, etc.)",
+          "sponsored": "Betaalde of gesponsorde link die als zodanig moet worden gemarkeerd"
+        }
       },
       "toast": {
         "deleteSuccess": {

@@ -304,6 +304,19 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       },
+      "tooltips": {
+        "status": {
+          "active": "Link is live and successfully points to the target URL",
+          "lost": "Link was found but no longer points to the target URL",
+          "broken": "Unable to access the link URL (404, timeout, etc.)"
+        },
+        "type": {
+          "dofollow": "Standard link that passes SEO value",
+          "nofollow": "Link with rel='nofollow' that doesn't pass SEO value",
+          "ugc": "User-generated content link (comments, forums, etc.)",
+          "sponsored": "Paid or sponsored link that must be marked as such"
+        }
+      },
       "toast": {
         "deleteSuccess": {
           "title": "Success",
