@@ -83,13 +83,23 @@
   },
   "projects": {
     "title": "Projecten",
+    "loading": "Project laden...",
+    "error": "Fout bij laden project",
+    "tabs": {
+      "overview": "Overzicht",
+      "analytics": "Analytics",
+      "backlinks": "Backlinks",
+      "keywords": "Zoekwoorden",
+      "content": "Content",
+      "technical": "Technische SEO",
+      "settings": "Instellingen"
+    },
     "addProject": "Project Toevoegen",
     "errors": {
       "loading": "Fout bij laden projecten",
       "loadingDesc": "Kan projecten niet laden. Probeer het later opnieuw.",
       "creating": "Kan project niet aanmaken"
     },
-    "loading": "Projecten laden...",
     "empty": "Nog geen projecten. Maak je eerste project aan om te beginnen!",
     "status": "Actief",
     "form": {
@@ -103,6 +113,234 @@
       "gscSiteDesc": "Optioneel: Voer je geverifieerde GSC site in",
       "submit": "Project Aanmaken",
       "cancel": "Annuleren"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "description": "Overzicht van je websiteprestaties",
+      "actions": {
+        "refresh": "Data Vernieuwen",
+        "configure": "Analytics Configureren",
+        "reconfigure": "Analytics Herconfigureren"
+      },
+      "errors": {
+        "auth": {
+          "title": "Authenticatiefout",
+          "description": "Google Analytics authenticatie is verlopen. Configureer opnieuw in instellingen."
+        },
+        "refresh": {
+          "title": "Fout",
+          "description": "Kan analytics gegevens niet vernieuwen"
+        }
+      },
+      "success": {
+        "refresh": {
+          "title": "Succes",
+          "description": "Analytics gegevens zijn vernieuwd"
+        }
+      },
+      "timeperiods": {
+        "7d": "Laatste 7 dagen",
+        "30d": "Laatste 30 dagen",
+        "90d": "Laatste 90 dagen",
+        "180d": "Laatste 180 dagen",
+        "365d": "Laatste 365 dagen"
+      },
+      "metrics": {
+        "comparison": "vs vorige periode",
+        "users": {
+          "title": "Gebruikers",
+          "tooltip": "Aantal unieke bezoekers in de geselecteerde periode."
+        },
+        "pageViews": {
+          "title": "Paginaweergaven",
+          "tooltip": "Totaal aantal bekeken pagina's tijdens de geselecteerde periode."
+        },
+        "sessionDuration": {
+          "title": "Gem. Sessieduur",
+          "tooltip": "Gemiddelde lengte van gebruikerssessies in seconden."
+        },
+        "bounceRate": {
+          "title": "Bouncepercentage",
+          "tooltip": "Percentage sessies waarin gebruikers vertrokken zonder verdere actie."
+        }
+      },
+      "search": {
+        "title": "Zoekprestaties",
+        "metrics": {
+          "clicks": {
+            "title": "Zoekclicks",
+            "tooltip": "Totaal aantal keren dat gebruikers doorklikten naar je site vanuit Google zoekresultaten"
+          },
+          "impressions": {
+            "title": "Zoekweergaven",
+            "tooltip": "Totaal aantal keren dat je site verscheen in Google zoekresultaten"
+          },
+          "ctr": {
+            "title": "Zoek CTR",
+            "tooltip": "Doorklikratio: clicks gedeeld door weergaven"
+          },
+          "position": {
+            "title": "Gem. Positie",
+            "tooltip": "Gemiddelde positie in Google zoekresultaten. Een lager getal is beter!"
+          }
+        }
+      },
+      "sections": {
+        "behavior": "Gebruikersgedrag",
+        "topPages": {
+          "title": "Beste Pagina's",
+          "views": "weergaven",
+          "noData": "Geen data beschikbaar."
+        },
+        "trafficSources": {
+          "title": "Verkeersbronnen",
+          "users": "gebruikers",
+          "noData": "Geen data beschikbaar."
+        }
+      },
+      "configuration": {
+        "title": "Huidige Configuratie",
+        "gaProperty": "Google Analytics Property ID",
+        "gscSite": "Google Search Console Geverifieerde Site",
+        "notConfigured": "Niet geconfigureerd"
+      }
+    },
+    "backlinks": {
+      "loading": {
+        "state1": "Backlinks laden...",
+        "state2": "Backlink gegevens analyseren...",
+        "state3": "Metrics berekenen..."
+      },
+      "error": "Kan backlink gegevens niet laden",
+      "empty": {
+        "title": "Geen backlinks gevonden",
+        "description": "Je kunt handmatig backlinks toevoegen."
+      },
+      "metrics": {
+        "activeBacklinks": "Totaal Actieve Backlinks",
+        "avgDomainAuthority": "Gemiddelde Domain Authority",
+        "newThisMonth": "Nieuw Deze Maand",
+        "lostLinks": "Verloren Links (30d)"
+      },
+      "table": {
+        "title": "Backlinks",
+        "description": "Een overzicht van alle backlinks naar je website",
+        "columns": {
+          "url": "URL",
+          "target": "Doel",
+          "anchor": "Ankertekst",
+          "da": "DA",
+          "type": "Type",
+          "status": "Status",
+          "firstSeen": "Eerste Keer Gezien",
+          "actions": "Acties"
+        },
+        "filter": {
+          "label": "Filter backlinks",
+          "all": "Alle Links",
+          "active": "Actief",
+          "lost": "Verloren",
+          "broken": "Kapot"
+        }
+      },
+      "dialog": {
+        "add": {
+          "title": "Backlink Toevoegen",
+          "button": "Backlink Toevoegen",
+          "adding": "Toevoegen...",
+          "sourceUrl": {
+            "label": "Bron URL",
+            "placeholder": "voorbeeld.nl/artikel",
+            "tooltip": "De URL waar de backlink zich bevindt"
+          },
+          "targetUrl": {
+            "label": "Doel URL",
+            "placeholder": "jouwsite.nl/pagina",
+            "tooltip": "Jouw pagina waarnaar wordt gelinkt.\nMoet een pagina van jouw website zijn."
+          },
+          "anchorText": {
+            "label": "Ankertekst",
+            "placeholder": "Klik hier",
+            "tooltip": "De klikbare tekst van de backlink.\nBelangrijk voor SEO relevantie."
+          },
+          "linkType": {
+            "label": "Link Type",
+            "tooltip": "DOFOLLOW: Geeft SEO waarde door\nNOFOLLOW: Geen SEO waarde\nUGC: Gebruikers content\nSPONSORED: Betaalde links",
+            "options": {
+              "dofollow": "Dofollow",
+              "nofollow": "Nofollow",
+              "ugc": "UGC",
+              "sponsored": "Gesponsord"
+            }
+          },
+          "actions": {
+            "cancel": "Annuleren",
+            "submit": "Toevoegen"
+          },
+          "messages": {
+            "invalidUrl": "Voer geldige URLs in",
+            "success": {
+              "title": "Succes",
+              "description": "Backlink succesvol toegevoegd"
+            },
+            "error": {
+              "title": "Fout",
+              "description": "Kan backlink niet toevoegen"
+            }
+          }
+        }
+      },
+      "actions": {
+        "add": "Backlink Toevoegen",
+        "edit": "Bewerken",
+        "delete": "Verwijderen",
+        "recheckAll": "Alles Controleren",
+        "recheck": "Controleren"
+      },
+      "deleteDialog": {
+        "title": "Weet je het zeker?",
+        "description": "Dit zal de backlink permanent verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
+        "cancel": "Annuleren",
+        "confirm": "Verwijderen"
+      },
+      "toast": {
+        "deleteSuccess": {
+          "title": "Succes",
+          "description": "Backlink succesvol verwijderd"
+        },
+        "deleteError": {
+          "title": "Fout",
+          "description": "Kan backlink niet verwijderen"
+        }
+      }
+    },
+    "overview": {
+      "loading": "Laden...",
+      "metrics": {
+        "avgKeywordRank": "Gem. Zoekwoord Positie",
+        "totalBacklinks": "Totaal Backlinks",
+        "contentScore": "Content Score",
+        "technicalScore": "Technische Score",
+        "lastMonth": "vorige maand"
+      },
+      "sections": {
+        "topKeywords": {
+          "title": "Top Zoekwoorden",
+          "position": "Positie"
+        },
+        "recentBacklinks": {
+          "title": "Recente Backlinks",
+          "da": "DA"
+        },
+        "technicalIssues": {
+          "title": "Technische Problemen",
+          "issues": {
+            "missingMeta": "pagina's met ontbrekende meta beschrijvingen",
+            "slowLoading": "pagina's met trage laadtijden",
+            "missingAlt": "afbeeldingen zonder alt tekst"
+          }
+        }
+      }
     }
   }
 }

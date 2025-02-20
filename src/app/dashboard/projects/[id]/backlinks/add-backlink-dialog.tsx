@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react"
 import { BacklinkType } from "@prisma/client"
 import { useToast } from "@/components/ui/use-toast"
+import { useLanguage } from "@/providers/language-provider"
 import {
   Tooltip,
   TooltipContent,
@@ -20,10 +21,124 @@ interface Props {
   onBacklinkAdded: () => void
 }
 
+interface BacklinkMessages {
+  loading: {
+    state1: string
+    state2: string
+    state3: string
+  }
+  error: string
+  empty: {
+    title: string
+    description: string
+  }
+  metrics: {
+    activeBacklinks: string
+    avgDomainAuthority: string
+    newThisMonth: string
+    lostLinks: string
+  }
+  table: {
+    title: string
+    description: string
+    columns: {
+      url: string
+      target: string
+      anchor: string
+      da: string
+      type: string
+      status: string
+      firstSeen: string
+      actions: string
+    }
+    filter: {
+      label: string
+      all: string
+      active: string
+      lost: string
+      broken: string
+    }
+  }
+  dialog: {
+    add: {
+      title: string
+      button: string
+      adding: string
+      sourceUrl: {
+        label: string
+        placeholder: string
+        tooltip: string
+      }
+      targetUrl: {
+        label: string
+        placeholder: string
+        tooltip: string
+      }
+      anchorText: {
+        label: string
+        placeholder: string
+        tooltip: string
+      }
+      linkType: {
+        label: string
+        tooltip: string
+        options: {
+          dofollow: string
+          nofollow: string
+          ugc: string
+          sponsored: string
+        }
+      }
+      actions: {
+        cancel: string
+        submit: string
+      }
+      messages: {
+        invalidUrl: string
+        success: {
+          title: string
+          description: string
+        }
+        error: {
+          title: string
+          description: string
+        }
+      }
+    }
+  }
+  actions: {
+    add: string
+    edit: string
+    delete: string
+    recheckAll: string
+    recheck: string
+  }
+  deleteDialog: {
+    title: string
+    description: string
+    cancel: string
+    confirm: string
+  }
+  toast: {
+    deleteSuccess: {
+      title: string
+      description: string
+    }
+    deleteError: {
+      title: string
+      description: string
+    }
+  }
+}
+
 export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { messages } = useLanguage()
+  const t = messages.projects.backlinks as unknown as BacklinkMessages
+  const dialog = t.dialog.add
+
   const [formData, setFormData] = useState({
     url: '',
     targetUrl: '',
@@ -34,18 +149,14 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
   const formatUrl = (url: string): string => {
     if (!url) return url
     
-    // Add protocol if missing
     if (!/^https?:\/\//i.test(url)) {
       url = 'https://' + url
     }
     
     try {
-      // Create URL object to validate and normalize
       const urlObject = new URL(url)
-      // Return normalized URL
       return urlObject.toString()
     } catch {
-      // Return original if invalid
       return url
     }
   }
@@ -64,16 +175,14 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
     setIsLoading(true)
 
     try {
-      // Format URLs before submission
       const formattedData = {
         ...formData,
         url: formatUrl(formData.url),
         targetUrl: formatUrl(formData.targetUrl)
       }
 
-      // Validate URLs
       if (!validateUrl(formattedData.url) || !validateUrl(formattedData.targetUrl)) {
-        throw new Error('Please enter valid URLs')
+        throw new Error(dialog.messages.invalidUrl)
       }
 
       const response = await fetch(`/api/projects/${projectId}/backlinks`, {
@@ -85,10 +194,9 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to add backlink')
+        throw new Error(data.error || dialog.messages.error.description)
       }
 
-      // Reset form and close dialog
       setFormData({
         url: '',
         targetUrl: '',
@@ -99,14 +207,14 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
       onBacklinkAdded()
 
       toast({
-        title: "Success",
-        description: "Backlink added successfully",
+        title: dialog.messages.success.title,
+        description: dialog.messages.success.description,
       })
     } catch (error) {
       console.error('Error adding backlink:', error)
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add backlink",
+        title: dialog.messages.error.title,
+        description: error instanceof Error ? error.message : dialog.messages.error.description,
         variant: "destructive",
       })
     } finally {
@@ -118,17 +226,17 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="h-8 px-6 font-medium bg-indigo-600 hover:bg-indigo-500 text-white">
-          Add Backlink
+          {dialog.button}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Backlink</DialogTitle>
+          <DialogTitle>{dialog.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="url" className="text-sm font-medium">Source URL</label>
+              <label htmlFor="url" className="text-sm font-medium">{dialog.sourceUrl.label}</label>
               <TooltipProvider delayDuration={200}>
                 <Tooltip defaultOpen={false}>
                   <TooltipTrigger asChild>
@@ -141,14 +249,14 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>The URL where the backlink is located</p>
+                    <p>{dialog.sourceUrl.tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
             <Input
               id="url"
-              placeholder="example.com/article"
+              placeholder={dialog.sourceUrl.placeholder}
               value={formData.url}
               onChange={(e) => setFormData({ ...formData, url: e.target.value })}
               required
@@ -156,7 +264,7 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="targetUrl" className="text-sm font-medium">Target URL</label>
+              <label htmlFor="targetUrl" className="text-sm font-medium">{dialog.targetUrl.label}</label>
               <TooltipProvider delayDuration={200}>
                 <Tooltip defaultOpen={false}>
                   <TooltipTrigger asChild>
@@ -169,15 +277,14 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Your page that is being linked to.<br/>
-                    Should be a page from your website.</p>
+                    <p>{dialog.targetUrl.tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
             <Input
               id="targetUrl"
-              placeholder="yoursite.com/page"
+              placeholder={dialog.targetUrl.placeholder}
               value={formData.targetUrl}
               onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
               required
@@ -185,7 +292,7 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="anchorText" className="text-sm font-medium">Anchor Text</label>
+              <label htmlFor="anchorText" className="text-sm font-medium">{dialog.anchorText.label}</label>
               <TooltipProvider delayDuration={200}>
                 <Tooltip defaultOpen={false}>
                   <TooltipTrigger asChild>
@@ -198,15 +305,14 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>The clickable text of the backlink.<br/>
-                    Important for SEO relevance.</p>
+                    <p>{dialog.anchorText.tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
             <Input
               id="anchorText"
-              placeholder="Click here"
+              placeholder={dialog.anchorText.placeholder}
               value={formData.anchorText}
               onChange={(e) => setFormData({ ...formData, anchorText: e.target.value })}
               required
@@ -214,7 +320,7 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="type" className="text-sm font-medium">Link Type</label>
+              <label htmlFor="type" className="text-sm font-medium">{dialog.linkType.label}</label>
               <TooltipProvider delayDuration={200}>
                 <Tooltip defaultOpen={false}>
                   <TooltipTrigger asChild>
@@ -227,10 +333,7 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>DOFOLLOW: Passes SEO value<br/>
-                    NOFOLLOW: No SEO value<br/>
-                    UGC: User generated content<br/>
-                    SPONSORED: Paid links</p>
+                    <p>{dialog.linkType.tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -243,10 +346,10 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DOFOLLOW">Dofollow</SelectItem>
-                <SelectItem value="NOFOLLOW">Nofollow</SelectItem>
-                <SelectItem value="UGC">UGC</SelectItem>
-                <SelectItem value="SPONSORED">Sponsored</SelectItem>
+                <SelectItem value="DOFOLLOW">{dialog.linkType.options.dofollow}</SelectItem>
+                <SelectItem value="NOFOLLOW">{dialog.linkType.options.nofollow}</SelectItem>
+                <SelectItem value="UGC">{dialog.linkType.options.ugc}</SelectItem>
+                <SelectItem value="SPONSORED">{dialog.linkType.options.sponsored}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -257,10 +360,15 @@ export function AddBacklinkDialog({ projectId, onBacklinkAdded }: Props) {
               size="sm"
               onClick={() => setIsOpen(false)}
             >
-              Cancel
+              {dialog.actions.cancel}
             </Button>
-            <Button type="submit" disabled={isLoading} size="sm" className="h-8 px-6 font-medium bg-indigo-600 hover:bg-indigo-500 text-white">
-              {isLoading ? 'Adding...' : 'Add Backlink'}
+            <Button 
+              type="submit" 
+              disabled={isLoading} 
+              size="sm" 
+              className="h-8 px-6 font-medium bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              {isLoading ? dialog.adding : dialog.actions.submit}
             </Button>
           </div>
         </form>

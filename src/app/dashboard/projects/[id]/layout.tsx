@@ -3,6 +3,7 @@
 import { useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import useSWR from 'swr'
+import { useLanguage } from '@/providers/language-provider'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -18,7 +19,7 @@ const navigation = [
   { name: 'Backlinks', href: '/backlinks' },
   { name: 'Keywords', href: '/keywords' },
   { name: 'Content', href: '/content' },
-  { name: 'Technical SEO', href: '/technical' },
+  { name: 'Technical', href: '/technical' },
   { name: 'Settings', href: '/settings' },
 ]
 
@@ -30,9 +31,10 @@ export default function ProjectLayout({
   const params = useParams()
   const pathname = usePathname()
   const { data: project, error } = useSWR<Project>(`/api/projects/${params.id}`, fetcher)
+  const { messages } = useLanguage()
 
   if (error) {
-    return <div className="text-red-500">Error loading project</div>
+    return <div className="text-red-500">{messages.projects.error}</div>
   }
 
   return (
@@ -73,7 +75,7 @@ export default function ProjectLayout({
                       : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                   } whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium`}
                 >
-                  {item.name}
+                  {messages.projects.tabs[item.name.toLowerCase() as keyof typeof messages.projects.tabs]}
                 </Link>
               )
             })}

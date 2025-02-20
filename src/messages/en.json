@@ -83,13 +83,23 @@
   },
   "projects": {
     "title": "Projects",
+    "loading": "Loading project...",
+    "error": "Error loading project",
+    "tabs": {
+      "overview": "Overview",
+      "analytics": "Analytics",
+      "backlinks": "Backlinks",
+      "keywords": "Keywords",
+      "content": "Content",
+      "technical": "Technical SEO",
+      "settings": "Settings"
+    },
     "addProject": "Add Project",
     "errors": {
       "loading": "Error loading projects",
       "loadingDesc": "Failed to load projects. Please try again later.",
       "creating": "Failed to create project"
     },
-    "loading": "Loading projects...",
     "empty": "No projects yet. Create your first project to get started!",
     "status": "Active",
     "form": {
@@ -103,6 +113,234 @@
       "gscSiteDesc": "Optional: Enter your verified GSC site",
       "submit": "Create Project",
       "cancel": "Cancel"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "description": "Overview of your site's performance",
+      "actions": {
+        "refresh": "Refresh Data",
+        "configure": "Configure Analytics",
+        "reconfigure": "Reconfigure Analytics"
+      },
+      "errors": {
+        "auth": {
+          "title": "Authentication Error",
+          "description": "Google Analytics authentication has expired. Please reconfigure in settings."
+        },
+        "refresh": {
+          "title": "Error",
+          "description": "Failed to refresh analytics data"
+        }
+      },
+      "success": {
+        "refresh": {
+          "title": "Success",
+          "description": "Analytics data has been refreshed"
+        }
+      },
+      "timeperiods": {
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "180d": "Last 180 days",
+        "365d": "Last 365 days"
+      },
+      "metrics": {
+        "comparison": "vs last period",
+        "users": {
+          "title": "Users",
+          "tooltip": "Number of unique visitors over the selected period."
+        },
+        "pageViews": {
+          "title": "Page Views",
+          "tooltip": "Total number of pages viewed during the selected period."
+        },
+        "sessionDuration": {
+          "title": "Avg. Session Duration",
+          "tooltip": "Average length of user sessions in seconds."
+        },
+        "bounceRate": {
+          "title": "Bounce Rate",
+          "tooltip": "Percentage of sessions in which users left without taking further action."
+        }
+      },
+      "search": {
+        "title": "Search Performance",
+        "metrics": {
+          "clicks": {
+            "title": "Search Clicks",
+            "tooltip": "Total number of times users clicked through to your site from Google search results"
+          },
+          "impressions": {
+            "title": "Search Impressions",
+            "tooltip": "Total number of times your site appeared in Google search results"
+          },
+          "ctr": {
+            "title": "Search CTR",
+            "tooltip": "Click-through rate: clicks divided by impressions"
+          },
+          "position": {
+            "title": "Avg. Position",
+            "tooltip": "Average ranking position in Google search results. A lower number is better!"
+          }
+        }
+      },
+      "sections": {
+        "behavior": "User Behavior",
+        "topPages": {
+          "title": "Top Pages",
+          "views": "views",
+          "noData": "No data available."
+        },
+        "trafficSources": {
+          "title": "Traffic Sources",
+          "users": "users",
+          "noData": "No data available."
+        }
+      },
+      "configuration": {
+        "title": "Current Configuration",
+        "gaProperty": "Google Analytics Property ID",
+        "gscSite": "Google Search Console Verified Site",
+        "notConfigured": "Not configured"
+      }
+    },
+    "backlinks": {
+      "loading": {
+        "state1": "Loading backlinks...",
+        "state2": "Analyzing backlink data...",
+        "state3": "Calculating metrics..."
+      },
+      "error": "Failed to load backlinks data",
+      "empty": {
+        "title": "No backlinks found",
+        "description": "You can add your backlinks manually."
+      },
+      "metrics": {
+        "activeBacklinks": "Total Active Backlinks",
+        "avgDomainAuthority": "Average Domain Authority",
+        "newThisMonth": "New This Month",
+        "lostLinks": "Lost Links (30d)"
+      },
+      "table": {
+        "title": "Backlinks",
+        "description": "A list of all backlinks pointing to your website",
+        "columns": {
+          "url": "URL",
+          "target": "Target",
+          "anchor": "Anchor",
+          "da": "DA",
+          "type": "Type",
+          "status": "Status",
+          "firstSeen": "First Seen",
+          "actions": "Actions"
+        },
+        "filter": {
+          "label": "Filter backlinks",
+          "all": "All Links",
+          "active": "Active",
+          "lost": "Lost",
+          "broken": "Broken"
+        }
+      },
+      "dialog": {
+        "add": {
+          "title": "Add New Backlink",
+          "button": "Add Backlink",
+          "adding": "Adding...",
+          "sourceUrl": {
+            "label": "Source URL",
+            "placeholder": "example.com/article",
+            "tooltip": "The URL where the backlink is located"
+          },
+          "targetUrl": {
+            "label": "Target URL",
+            "placeholder": "yoursite.com/page",
+            "tooltip": "Your page that is being linked to.\nShould be a page from your website."
+          },
+          "anchorText": {
+            "label": "Anchor Text",
+            "placeholder": "Click here",
+            "tooltip": "The clickable text of the backlink.\nImportant for SEO relevance."
+          },
+          "linkType": {
+            "label": "Link Type",
+            "tooltip": "DOFOLLOW: Passes SEO value\nNOFOLLOW: No SEO value\nUGC: User generated content\nSPONSORED: Paid links",
+            "options": {
+              "dofollow": "Dofollow",
+              "nofollow": "Nofollow",
+              "ugc": "UGC",
+              "sponsored": "Sponsored"
+            }
+          },
+          "actions": {
+            "cancel": "Cancel",
+            "submit": "Add Backlink"
+          },
+          "messages": {
+            "invalidUrl": "Please enter valid URLs",
+            "success": {
+              "title": "Success",
+              "description": "Backlink added successfully"
+            },
+            "error": {
+              "title": "Error",
+              "description": "Failed to add backlink"
+            }
+          }
+        }
+      },
+      "actions": {
+        "add": "Add Backlink",
+        "edit": "Edit",
+        "delete": "Delete",
+        "recheckAll": "Recheck All",
+        "recheck": "Recheck"
+      },
+      "deleteDialog": {
+        "title": "Are you sure?",
+        "description": "This will permanently delete the backlink. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toast": {
+        "deleteSuccess": {
+          "title": "Success",
+          "description": "Backlink deleted successfully"
+        },
+        "deleteError": {
+          "title": "Error",
+          "description": "Failed to delete backlink"
+        }
+      }
+    },
+    "overview": {
+      "loading": "Loading...",
+      "metrics": {
+        "avgKeywordRank": "Avg Keyword Rank",
+        "totalBacklinks": "Total Backlinks",
+        "contentScore": "Content Score",
+        "technicalScore": "Technical Score",
+        "lastMonth": "last month"
+      },
+      "sections": {
+        "topKeywords": {
+          "title": "Top Keywords",
+          "position": "Position"
+        },
+        "recentBacklinks": {
+          "title": "Recent Backlinks",
+          "da": "DA"
+        },
+        "technicalIssues": {
+          "title": "Technical Issues",
+          "issues": {
+            "missingMeta": "pages with missing meta descriptions",
+            "slowLoading": "pages with slow loading times",
+            "missingAlt": "images missing alt text"
+          }
+        }
+      }
     }
   }
 }
