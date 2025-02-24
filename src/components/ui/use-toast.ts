@@ -1,31 +1,52 @@
-import { toast as sonnerToast } from "sonner"
+// Adapted from https://ui.shadcn.com
+import { useState, useEffect, useCallback } from "react";
 
-const toast = sonnerToast
+const TOAST_TIMEOUT = 5000;
 
-type ToastProps = {
-  title?: string
-  description?: string
-  variant?: "default" | "destructive"
-  action?: {
-    label: string
-    onClick: () => void
-  }
+interface Toast {
+  id: string;
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+}
+
+interface ToastState {
+  toasts: Toast[];
 }
 
 const useToast = () => {
-  return {
-    toast: ({ title, description, action }: ToastProps) => {
-      sonnerToast(title || description, {
-        description: title ? description : undefined,
-        action: action
-          ? {
-              label: action.label,
-              onClick: action.onClick,
-            }
-          : undefined,
-      })
-    },
-  }
-}
+  const [state, setState] = useState<ToastState>({ toasts: [] });
 
-export { toast, useToast }
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setState((current) => ({
+        ...current,
+        toasts: current.toasts.filter((toast) => {
+          const now = new Date().getTime();
+          const toastTime = new Date(toast.id).getTime();
+          return now - toastTime < TOAST_TIMEOUT;
+        }),
+      }));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const toast = useCallback(
+    ({ title, description, variant = "default" }: Omit<Toast, "id">) => {
+      const id = new Date().toISOString();
+      setState((current) => ({
+        ...current,
+        toasts: [...current.toasts, { id, title, description, variant }],
+      }));
+    },
+    []
+  );
+
+  return {
+    toast,
+    toasts: state.toasts,
+  };
+};
+
+export { useToast };

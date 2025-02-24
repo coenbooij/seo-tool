@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { KeywordData } from '@/lib/db/keywords';
+import { KeywordData } from "./types";
 import {
   Table,
   TableBody,
@@ -8,16 +8,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { formatNumber } from '@/lib/utils';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { formatNumber } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export interface KeywordTableProps {
   keywords: KeywordData[];
-  onKeywordDelete: (keyword: string) => void;
+  onKeywordDelete: (keywordId: string) => void;
   onSortChange?: (columnKey: string) => void;
   sortColumn?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
 }
 
 export function KeywordTable({
@@ -35,63 +36,74 @@ export function KeywordTable({
 
   const getSortIndicator = (columnKey: string) => {
     if (columnKey !== sortColumn) return null;
-    return sortDirection === 'asc' ? '↑' : '↓';
+    return sortDirection === "asc" ? "↑" : "↓";
+  };
+
+  const getRankingBadgeVariant = (rank: number | null): {
+    variant: "default" | "success" | "warning" | "error";
+    label: string;
+  } => {
+    if (!rank) return { variant: "default", label: "Not ranked" };
+    if (rank <= 3) return { variant: "success", label: `#${rank}` };
+    if (rank <= 10) return { variant: "warning", label: `#${rank}` };
+    return { variant: "error", label: `#${rank}` };
   };
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead onClick={() => handleSort('keyword')} className="cursor-pointer">
-            Keyword {getSortIndicator('keyword')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('intent')} className="cursor-pointer">
-            Intent {getSortIndicator('intent')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('searchVolume')} className="cursor-pointer">
-            Volume {getSortIndicator('searchVolume')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('difficulty')} className="cursor-pointer">
-            Difficulty {getSortIndicator('difficulty')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('competition')} className="cursor-pointer">
-            Competition {getSortIndicator('competition')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('cpc')} className="cursor-pointer">
-            CPC {getSortIndicator('cpc')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('currentRank')} className="cursor-pointer">
-            Rank {getSortIndicator('currentRank')}
-          </TableHead>
-          <TableHead onClick={() => handleSort('density')} className="cursor-pointer">
-            Density {getSortIndicator('density')}
-          </TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {keywords.map((keyword) => (
-          <TableRow key={keyword.keyword}>
-            <TableCell>{keyword.keyword}</TableCell>
-            <TableCell className="capitalize">{keyword.intent}</TableCell>
-            <TableCell>{formatNumber(keyword.searchVolume)}</TableCell>
-            <TableCell>{formatNumber(keyword.difficulty)}</TableCell>
-            <TableCell>{formatNumber(keyword.competition)}%</TableCell>
-            <TableCell>${formatNumber(keyword.cpc)}</TableCell>
-            <TableCell>{keyword.currentRank || '-'}</TableCell>
-            <TableCell>{keyword.density ? `${formatNumber(keyword.density)}%` : '-'}</TableCell>
-            <TableCell>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onKeywordDelete(keyword.keyword)}
-              >
-                Delete
-              </Button>
-            </TableCell>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader className="bg-gray-50">
+          <TableRow>
+            <TableHead onClick={() => handleSort("keyword")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              Keyword {getSortIndicator("keyword")}
+            </TableHead>
+            <TableHead onClick={() => handleSort("currentRank")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              Position {getSortIndicator("currentRank")}
+            </TableHead>
+            <TableHead onClick={() => handleSort("searchVolume")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              Volume {getSortIndicator("searchVolume")}
+            </TableHead>
+            <TableHead onClick={() => handleSort("intent")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              Intent {getSortIndicator("intent")}
+            </TableHead>
+            <TableHead className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {keywords.map((keyword) => (
+            <TableRow key={keyword.keyword}>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                {keyword.keyword}
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm">
+                <Badge variant={getRankingBadgeVariant(keyword.currentRank).variant}>
+                  {getRankingBadgeVariant(keyword.currentRank).label}
+                </Badge>
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {formatNumber(keyword.searchVolume)}
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                {keyword.intent.toLowerCase()}
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex items-center space-x-2 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-900"
+                    onClick={() => onKeywordDelete(keyword.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

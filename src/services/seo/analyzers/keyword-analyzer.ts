@@ -1,5 +1,5 @@
 import { KeywordIntent } from '@prisma/client'
-import type { KeywordData } from '@/lib/db/keywords'
+import type { KeywordData } from '@/app/dashboard/projects/[id]/keywords/types'
 import { KeywordSource, ContentStatus } from '@/app/dashboard/projects/[id]/keywords/types'
 import { calculatePriorityScore, calculateKeywordDensity, type KeywordScoreInput } from '../utils/keyword-scoring'
 
@@ -242,13 +242,13 @@ export class KeywordAnalyzer {
 
     return {
       missingHighValue: missingKeywords
-        .filter(kw => (kw.searchVolume || 0) > 1000 && (kw.difficulty || 0) < 50)
+        .filter(kw => kw.searchVolume > 1000 && (kw.difficulty ?? 100) < 50)
         .slice(0, 10),
       competitorStrengths: missingKeywords
-        .filter(kw => kw.searchVolume && kw.searchVolume > 5000)
+        .filter(kw => kw.searchVolume > 5000)
         .slice(0, 10),
       quickWins: missingKeywords
-        .filter(kw => (kw.difficulty || 0) < 30 && (kw.searchVolume || 0) > 100)
+        .filter(kw => (kw.difficulty ?? 100) < 30 && kw.searchVolume > 100)
         .slice(0, 10)
     }
   }

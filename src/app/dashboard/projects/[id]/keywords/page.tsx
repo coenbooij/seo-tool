@@ -1,14 +1,15 @@
 import { getProjectKeywords } from '@/lib/db/keywords';
-import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/lib/authOptions';
 import { prisma } from '@/lib/prisma';
-import { KeywordsClient } from './keywords-client';
+import { Suspense } from 'react';
+import { KeywordsOverview } from './keywords-overview';
+import { KeywordsSkeleton } from './keywords-skeleton';
 
 export const metadata = {
-  title: 'Keyword Management',
-  description: 'Manage and optimize your target keywords using a systematic workflow',
+  title: 'Keywords Overview',
+  description: 'Monitor and track your keyword rankings and performance',
 };
 
 interface PageParams {
@@ -42,21 +43,11 @@ export default async function KeywordsPage({
   const keywords = await getProjectKeywords(id);
 
   return (
-    <div className="h-full min-h-screen bg-gray-50/50">
-      <div className="max-w-screen-2xl mx-1 pt-1">
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center h-32">
-              <div className="text-sm text-gray-500">Loading keywords...</div>
-            </div>
-          }
-        >
-          <KeywordsClient
-            projectId={id}
-            initialKeywords={keywords}
-          />
-        </Suspense>
-      </div>
-    </div>
+    <Suspense fallback={<KeywordsSkeleton />}>
+      <KeywordsOverview
+        projectId={id}
+        initialKeywords={keywords}
+      />
+    </Suspense>
   );
 }
