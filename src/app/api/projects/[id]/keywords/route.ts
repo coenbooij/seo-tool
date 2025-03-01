@@ -15,7 +15,7 @@ export async function POST(
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const project = await prisma.project.findFirst({
@@ -26,20 +26,46 @@ export async function POST(
     });
 
     if (!project) {
-      return new NextResponse("Project not found", { status: 404 });
+      return NextResponse.json({ message: "Project not found" }, { status: 404 });
     }
 
     const { keywords } = await request.json();
+    const projectId = (await params).id;
 
+    // Check for existing keywords
+    const existingKeywords = await prisma.keyword.findMany({
+      where: {
+        projectId,
+        keyword: {
+          in: keywords.map((k: KeywordInput) => k.keyword.toLowerCase())
+        }
+      },
+      select: {
+        keyword: true
+      }
+    });
+
+    if (existingKeywords.length > 0) {
+      return NextResponse.json(
+        { 
+          message: `The following keywords already exist: ${existingKeywords.map(k => 
+            k.keyword.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+          ).join(', ')}` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create new keywords
     const createdKeywords = await prisma.$transaction(
-      keywords.map(async (keyword: KeywordInput) =>
+      keywords.map((keyword: KeywordInput) =>
         prisma.keyword.create({
           data: {
-            keyword: keyword.keyword,
+            keyword: keyword.keyword.toLowerCase(),
             searchVolume: 0,
             intent: KeywordIntent.INFORMATIONAL,
-            currentRank: undefined,
-            projectId: (await params).id,
+            currentRank: 0,
+            projectId,
           },
         })
       )
@@ -47,7 +73,10 @@ export async function POST(
 
     return NextResponse.json(createdKeywords);
   } catch (error) {
-    console.error("Error creating keywords:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("Error creating keywords:", error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json(
+      { message: "Failed to add keywords" },
+      { status: 500 }
+    );
   }
 }

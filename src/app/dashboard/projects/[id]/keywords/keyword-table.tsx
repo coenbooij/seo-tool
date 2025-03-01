@@ -75,7 +75,7 @@ export function KeywordTable({
           {keywords.map((keyword) => (
             <TableRow key={keyword.keyword}>
               <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-900">
-                {keyword.keyword}
+                {keyword.keyword.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </TableCell>
               <TableCell className="px-6 py-4 whitespace-nowrap text-sm">
                 <Badge variant={getRankingBadgeVariant(keyword.currentRank).variant}>

@@ -32,6 +32,20 @@ export function KeywordsOverview({ projectId, initialKeywords }: KeywordsOvervie
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { toast } = useToast();
 
+  const handleApiError = async (response: globalThis.Response): Promise<string> => {
+    let errorMessage = "An error occurred";
+    const responseClone = response.clone();
+    
+    try {
+      const errorJson = await response.json();
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      const errorText = await responseClone.text();
+      if (errorText) errorMessage = errorText;
+    }
+    return errorMessage;
+  };
+
   useEffect(() => {
     calculateMetrics(keywords);
   }, [keywords]);
@@ -58,7 +72,15 @@ export function KeywordsOverview({ projectId, initialKeywords }: KeywordsOvervie
         body: JSON.stringify({ keywords: newKeywords }),
       });
 
-      if (!response.ok) throw new Error("Failed to add keywords");
+      if (!response.ok) {
+        const errorMessage = await handleApiError(response);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        return;
+      }
 
       const addedKeywords: KeywordData[] = await response.json();
       setKeywords([...keywords, ...addedKeywords]);
@@ -67,10 +89,11 @@ export function KeywordsOverview({ projectId, initialKeywords }: KeywordsOvervie
         description: `Successfully added ${addedKeywords.length} keywords`,
       });
       setIsAddDialogOpen(false);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Failed to add keywords:', error);
       toast({
         variant: "destructive",
+        title: "Error",
         description: "Failed to add keywords. Please try again.",
       });
     }
@@ -88,17 +111,26 @@ export function KeywordsOverview({ projectId, initialKeywords }: KeywordsOvervie
         }
       );
 
-      if (!response.ok) throw new Error("Failed to delete keyword");
+      if (!response.ok) {
+        const errorMessage = await handleApiError(response);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        return;
+      }
 
       setKeywords(keywords.filter(k => k.id !== keywordId));
       toast({
         description: "Keyword deleted successfully",
       });
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Failed to delete keyword:', error);
       toast({
         variant: "destructive",
-        description: "Failed to delete keyword",
+        title: "Error",
+        description: "Failed to delete keyword. Please try again.",
       });
     }
   };
