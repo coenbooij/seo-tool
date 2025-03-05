@@ -65,15 +65,27 @@
       "items": [
         {
           "title": "Keyword Tracking",
-          "description": "Monitor your search rankings and track progress over time"
+          "description": "Monitor rankings with daily updates and track historical performance"
         },
         {
           "title": "Backlink Analysis",
-          "description": "Discover and monitor your backlink profile"
+          "description": "Discover, monitor and verify your backlink profile"
         },
         {
           "title": "Technical SEO",
-          "description": "Identify and fix technical SEO issues"
+          "description": "Identify and fix technical SEO issues with automated audits"
+        },
+        {
+          "title": "Analytics Integration",
+          "description": "Connect Google Analytics and Search Console for comprehensive insights"
+        },
+        {
+          "title": "Content Optimization",
+          "description": "Get recommendations to improve your content's SEO performance"
+        },
+        {
+          "title": "Rank Tracking",
+          "description": "Track search engine positions for all your important keywords"
         }
       ]
     },

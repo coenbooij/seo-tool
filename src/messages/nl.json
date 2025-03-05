@@ -65,15 +65,27 @@
       "items": [
         {
           "title": "Zoekwoord Tracking",
-          "description": "Monitor je zoekrangschikking en volg de vooruitgang"
+          "description": "Monitor rankings met dagelijkse updates en volg historische prestaties"
         },
         {
           "title": "Backlink Analyse",
-          "description": "Ontdek en monitor je backlink profiel"
+          "description": "Ontdek, monitor en verifieer je backlink profiel"
         },
         {
           "title": "Technische SEO",
-          "description": "Identificeer en los technische SEO problemen op"
+          "description": "Identificeer en los technische SEO problemen op met geautomatiseerde audits"
+        },
+        {
+          "title": "Analytics Integratie",
+          "description": "Koppel Google Analytics en Search Console voor uitgebreide inzichten"
+        },
+        {
+          "title": "Content Optimalisatie",
+          "description": "Ontvang aanbevelingen om de SEO prestaties van je content te verbeteren"
+        },
+        {
+          "title": "Positie Tracking",
+          "description": "Volg zoekmachine posities voor al je belangrijke zoekwoorden"
         }
       ]
     },
