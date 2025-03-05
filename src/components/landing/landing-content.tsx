@@ -144,10 +144,10 @@ export default function LandingContent() {
                 </svg>
               </Link>
               <Link
-                href="#features"
+                href="/demo"
                 className="inline-flex justify-center items-center gap-x-3.5 text-sm text-gray-800 hover:text-gray-600 font-medium rounded-full border border-gray-200 hover:border-gray-300 shadow-sm py-3 px-6 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white"
               >
-                {messages.landing.hero.cta.learnMore}
+                {messages.landing.hero.cta.demo}
               </Link>
             </div>
 
