@@ -14,6 +14,7 @@ export interface KeywordData {
   intent: KeywordIntent;
   searchVolume: number;
   currentRank: number | null;
+  bestRank?: number | null;
   projectId: string;
   
   // Optional analysis and metadata properties

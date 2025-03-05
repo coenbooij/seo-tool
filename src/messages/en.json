@@ -363,6 +363,52 @@
           }
         }
       }
+    },
+    "keywords": {
+      "title": "Keywords",
+      "loading": {
+        "state1": "Loading keywords...",
+        "state2": "Analyzing rankings..."
+      },
+      "error": "Failed to load keywords data",
+      "empty": {
+        "title": "No keywords found",
+        "description": "Add keywords to start tracking their rankings."
+      },
+      "metrics": {
+        "totalKeywords": "Total Keywords",
+        "avgPosition": "Average Position",
+        "topRankings": "Top 10 Rankings",
+        "gainersLosers": "Gainers/Losers (30d)"
+      },
+      "table": {
+        "columns": {
+          "keyword": "Keyword",
+          "rank": "Rank",
+          "bestRank": "Best Rank",
+          "volume": "Volume",
+          "difficulty": "Difficulty",
+          "intent": "Intent",
+          "actions": "Actions"
+        }
+      },
+      "actions": {
+        "add": "Add Keywords",
+        "delete": "Delete",
+        "recheckAll": "Recheck All",
+        "recheck": "Recheck",
+        "checking": "Checking"
+      },
+      "toast": {
+        "recheckSuccess": {
+          "title": "Rankings Updated",
+          "description": "All keyword rankings have been rechecked"
+        },
+        "recheckError": {
+          "title": "Error",
+          "description": "Failed to recheck some keyword rankings"
+        }
+      }
     }
   }
 }

@@ -75,6 +75,7 @@ model Keyword {
   trends        Json?
   notes         String?
   projectId     String
+  lastChecked   DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)

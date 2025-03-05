@@ -363,6 +363,52 @@
           }
         }
       }
+    },
+    "keywords": {
+      "title": "Zoekwoorden",
+      "loading": {
+        "state1": "Zoekwoorden laden...",
+        "state2": "Rankings analyseren..."
+      },
+      "error": "Kan zoekwoord gegevens niet laden",
+      "empty": {
+        "title": "Geen zoekwoorden gevonden",
+        "description": "Voeg zoekwoorden toe om hun rankings te volgen."
+      },
+      "metrics": {
+        "totalKeywords": "Totaal Zoekwoorden",
+        "avgPosition": "Gemiddelde Positie",
+        "topRankings": "Top 10 Rankings",
+        "gainersLosers": "Stijgers/Dalers (30d)"
+      },
+      "table": {
+        "columns": {
+          "keyword": "Zoekwoord",
+          "rank": "Positie",
+          "bestRank": "Beste Positie",
+          "volume": "Volume",
+          "difficulty": "Moeilijkheid",
+          "intent": "Intentie",
+          "actions": "Acties"
+        }
+      },
+      "actions": {
+        "add": "Zoekwoorden Toevoegen",
+        "delete": "Verwijderen",
+        "recheckAll": "Alles Controleren",
+        "recheck": "Controleren",
+        "checking": "Controleren"
+      },
+      "toast": {
+        "recheckSuccess": {
+          "title": "Rankings Bijgewerkt",
+          "description": "Alle zoekwoordrankings zijn opnieuw gecontroleerd"
+        },
+        "recheckError": {
+          "title": "Fout",
+          "description": "Kan sommige zoekwoordrankings niet controleren"
+        }
+      }
     }
   }
 }

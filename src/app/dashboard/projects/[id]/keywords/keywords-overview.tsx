@@ -32,6 +32,49 @@ export function KeywordsOverview({ projectId, initialKeywords }: KeywordsOvervie
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { toast } = useToast();
 
+  const handleKeywordRecheck = async (keywordId: string) => {
+    try {
+      const response = await fetch(
+        `/api/projects/${projectId}/keywords/${keywordId}/check-ranking`,
+        { method: "POST" }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await handleApiError(response);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        return;
+      }
+
+      const { rank } = await response.json();
+      
+      setKeywords(prevKeywords => prevKeywords.map(k => 
+        k.id === keywordId 
+          ? { 
+              ...k, 
+              currentRank: rank,
+              bestRank: !k.bestRank || rank < k.bestRank ? rank : k.bestRank,
+              lastChecked: new Date()
+            } 
+          : k
+      ));
+
+      toast({
+        description: "Keyword ranking updated successfully",
+      });
+    } catch (error) {
+      console.error('Failed to recheck keyword:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update keyword ranking. Please try again.",
+      });
+    }
+  };
+
   const handleApiError = async (response: globalThis.Response): Promise<string> => {
     let errorMessage = "An error occurred";
     const responseClone = response.clone();
@@ -229,6 +272,7 @@ export function KeywordsOverview({ projectId, initialKeywords }: KeywordsOvervie
         <KeywordTable 
           keywords={keywords}
           onKeywordDelete={handleKeywordDelete}
+          onKeywordRecheck={handleKeywordRecheck}
           onSortChange={handleSort}
           sortColumn={sortColumn}
           sortDirection={sortDirection}

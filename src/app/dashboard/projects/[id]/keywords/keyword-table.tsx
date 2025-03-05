@@ -10,12 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { RefreshCw } from "lucide-react";
 
 export interface KeywordTableProps {
   keywords: KeywordData[];
   onKeywordDelete: (keywordId: string) => void;
+  onKeywordRecheck: (keywordId: string) => Promise<void>;
   onSortChange?: (columnKey: string) => void;
   sortColumn?: string;
   sortDirection?: "asc" | "desc";
@@ -24,6 +26,7 @@ export interface KeywordTableProps {
 export function KeywordTable({
   keywords,
   onKeywordDelete,
+  onKeywordRecheck,
   onSortChange,
   sortColumn,
   sortDirection,
@@ -58,7 +61,13 @@ export function KeywordTable({
               Keyword {getSortIndicator("keyword")}
             </TableHead>
             <TableHead onClick={() => handleSort("currentRank")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-              Position {getSortIndicator("currentRank")}
+              Current Position {getSortIndicator("currentRank")}
+            </TableHead>
+            <TableHead onClick={() => handleSort("bestRank")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              Best Position {getSortIndicator("bestRank")}
+            </TableHead>
+            <TableHead onClick={() => handleSort("lastChecked")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              Last Checked {getSortIndicator("lastChecked")}
             </TableHead>
             <TableHead onClick={() => handleSort("searchVolume")} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
               Volume {getSortIndicator("searchVolume")}
@@ -73,7 +82,7 @@ export function KeywordTable({
         </TableHeader>
         <TableBody>
           {keywords.map((keyword) => (
-            <TableRow key={keyword.keyword}>
+            <TableRow key={keyword.id}>
               <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-900">
                 {keyword.keyword.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </TableCell>
@@ -81,6 +90,14 @@ export function KeywordTable({
                 <Badge variant={getRankingBadgeVariant(keyword.currentRank).variant}>
                   {getRankingBadgeVariant(keyword.currentRank).label}
                 </Badge>
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm">
+                <Badge variant={getRankingBadgeVariant(keyword.bestRank ?? null).variant}>
+                  {getRankingBadgeVariant(keyword.bestRank ?? null).label}
+                </Badge>
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {keyword.lastChecked ? formatDate(keyword.lastChecked) : 'Never'}
               </TableCell>
               <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {formatNumber(keyword.searchVolume)}
@@ -90,6 +107,13 @@ export function KeywordTable({
               </TableCell>
               <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex items-center space-x-2 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onKeywordRecheck(keyword.id)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
